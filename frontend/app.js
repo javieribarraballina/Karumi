@@ -3,6 +3,9 @@ const POLL_MS = 1000;
 const MAX_POLLS = 300;
 const STEP_MS = 600;
 const LARGE_MAP = 12; // screens; bigger maps zoom out, so labels need a larger font
+const DENSE_RATIO = 3; // links per screen; above this, site-wide menus tangle the graph
+const WIDE_LEVEL = 6; // screens at one depth; above this, a tree gets too wide to read
+const RING_SIZE = 14;
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -150,10 +153,26 @@ function graphStyle(screenCount) {
       },
     },
     { selector: ".dim", style: { opacity: 0.25 } },
+    { selector: "edge.extra", style: { display: "none" } },
+    { selector: "edge.quiet", style: { label: "" } },
+    {
+      selector: "edge.reveal",
+      style: {
+        display: "element",
+        width: 3,
+        label: "data(short)",
+        "line-color": here,
+        "target-arrow-color": here,
+        color: here,
+        "z-index": 9,
+      },
+    },
     { selector: "node.on-route", style: { "border-width": 6, "border-color": route, "z-index": 10 } },
     {
       selector: "edge.on-route",
       style: {
+        display: "element",
+        label: "data(short)",
         width: 6,
         "line-color": route,
         "target-arrow-color": route,
@@ -179,6 +198,18 @@ function renderGraph(map, homeId) {
     .filter((e) => known.has(e.from) && known.has(e.to))
     .map((e, i) => ({ data: { id: `e${i}`, source: e.from, target: e.to, short: shortAction(e.action) } }));
 
+  const { depth, treeIds } = spanningTree(edges, homeId);
+  const dense = edges.length > map.screens.length * DENSE_RATIO;
+  if (dense) {
+    for (const edge of edges) edge.classes = treeIds.has(edge.data.id) ? "quiet" : "quiet extra";
+  }
+  $("graph-hint").hidden = !dense;
+  $("graph-hint").textContent = `Showing ${treeIds.size} of ${edges.length} links. Click a screen to see its links.`;
+
+  const levels = {};
+  for (const level of depth.values()) levels[level] = (levels[level] ?? 0) + 1;
+  const wide = Math.max(...Object.values(levels)) > WIDE_LEVEL;
+
   state.cy?.destroy();
   const cy = cytoscape({
     container: $("graph"),
@@ -186,22 +217,55 @@ function renderGraph(map, homeId) {
     style: graphStyle(map.screens.length),
     minZoom: 0.15,
     maxZoom: 1.3,
-    layout: {
-      name: "breadthfirst",
-      directed: true,
-      roots: [homeId],
-      spacingFactor: 1.15,
-      avoidOverlap: true,
-      nodeDimensionsIncludeLabels: true,
-      padding: 40,
-    },
+    layout: wide ? ringLayout([...depth.keys()]) : treeLayout(homeId),
   });
-  fillStage(cy);
+  if (!wide) fillStage(cy);
   cy.on("tap", "node", (event) => openDetail(event.target.id()));
   cy.on("tap", (event) => {
     if (event.target === cy) closeDetail();
   });
   state.cy = cy;
+}
+
+// The links that first reach each screen: a sitemap inside a tangled graph.
+function spanningTree(edges, rootId) {
+  const depth = new Map([[rootId, 0]]);
+  const treeIds = new Set();
+  for (const id of depth.keys()) {
+    for (const { data } of edges) {
+      if (data.source === id && !depth.has(data.target)) {
+        depth.set(data.target, depth.get(id) + 1);
+        treeIds.add(data.id);
+      }
+    }
+  }
+  return { depth, treeIds };
+}
+
+function treeLayout(homeId) {
+  return {
+    name: "breadthfirst",
+    directed: true,
+    roots: [homeId],
+    spacingFactor: 1.15,
+    avoidOverlap: true,
+    nodeDimensionsIncludeLabels: true,
+    padding: 40,
+  };
+}
+
+// Home in the middle, the rest in rings by distance. Screens nothing links to
+// aren't in `order` and go on the outside.
+function ringLayout(order) {
+  const ring = new Map(order.map((id, i) => [id, i === 0 ? 0 : 1 + Math.floor((i - 1) / RING_SIZE)]));
+  return {
+    name: "concentric",
+    concentric: (node) => -(ring.get(node.id()) ?? order.length),
+    levelWidth: () => 1,
+    minNodeSpacing: 30,
+    avoidOverlap: true,
+    padding: 40,
+  };
 }
 
 // Long chains come out tall, but the stage is wide: run them left to right so
@@ -244,10 +308,13 @@ function openDetail(id) {
   link.href = link.hidden ? "#" : s.url;
   link.textContent = s.url ?? "";
   $("detail").hidden = false;
+  state.cy?.edges().removeClass("reveal");
+  state.cy?.getElementById(id).outgoers("edge").addClass("reveal");
 }
 
 function closeDetail() {
   $("detail").hidden = true;
+  state.cy?.edges().removeClass("reveal");
 }
 
 function resetTools() {
@@ -407,7 +474,8 @@ async function animateRoute(steps, targetLabel, run) {
   for (const [i, step] of steps.entries()) {
     if (!reducedMotion.matches) await sleep(STEP_MS);
     if (run !== state.routeRun) return;
-    const edge = cy.edges().filter((e) => e.source().id() === step.from && e.target().id() === step.to);
+    const edge = cy.edges().filter((e) => e.source().id() === step.from && e.target().id() === step.to).first();
+    edge.data("short", shortAction(step.action));
     edge.removeClass("dim").addClass("on-route");
     cy.getElementById(step.to).removeClass("dim").addClass("on-route");
     items[i].classList.add("done");

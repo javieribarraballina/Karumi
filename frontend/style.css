@@ -298,3 +298,13 @@ button:disabled { opacity: .5; cursor: wait; }
   .stage { height: 60vh; }
   .tools { border-top: 2px solid var(--line); border-left: 0; }
 }
+
+.hint {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+}
