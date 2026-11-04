@@ -60,8 +60,8 @@ def locate(map_id: str, file: UploadFile = File(...)):
 
 class ExploreBody(BaseModel):
     url: str
-    max_pages: int = 15  # live demo default; demo maps ask for 40 / 300
-    max_seconds: int = 90
+    max_pages: int = 40  # ~1 s per page measured; 40 pages ≈ 40–60 s live
+    max_seconds: int = 120
 
 
 def _run(job_id: str, body: ExploreBody):
