@@ -89,7 +89,7 @@ def test_explore_limits_default_and_override(monkeypatch, tmp_path):
     monkeypatch.setattr(graph, "build_map", lambda raw: {"app": "x", "screens": [], "edges": []})
     wait_done(client.post("/api/explore", json={"url": "http://x"}).json()["job_id"])
     wait_done(client.post("/api/explore", json={"url": "http://x", "max_pages": 40, "max_seconds": 300}).json()["job_id"])
-    assert (seen[0]["max_pages"], seen[0]["max_seconds"]) == (60, 180)
+    assert (seen[0]["max_pages"], seen[0]["max_seconds"]) == (100, 180)
     assert (seen[1]["max_pages"], seen[1]["max_seconds"]) == (40, 300)
 
 

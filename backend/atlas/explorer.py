@@ -25,9 +25,9 @@ from playwright.async_api import async_playwright
 VIEWPORT = {"width": 1280, "height": 800}
 PER_PATTERN = 2        # visit at most this many pages per URL pattern (/book/{n})
 MAX_CHILDREN = 3       # links per page that go to the front queue: keeps the crawl going deeper
-WORKERS = 4            # pages loaded in parallel (tabs of one browser)
+WORKERS = 6            # pages loaded in parallel (tabs of one browser)
 TEXT_CHARS = 2000
-MAX_LINKS = 80         # links kept per page
+MAX_LINKS = 200        # links kept per page
 NAV_TIMEOUT_MS = 15000
 SETTLE_MS = 2500       # extra wait for JS-rendered content, capped
 
