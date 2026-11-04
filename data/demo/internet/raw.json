@@ -1,0 +1,444 @@
+{
+  "app": "https://the-internet.herokuapp.com/",
+  "pages": [
+    {
+      "id": "p1",
+      "url": "https://the-internet.herokuapp.com/",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p1.png",
+      "text": "Welcome to the-internet\nAvailable Examples\nA/B Testing\nAdd/Remove Elements\nBasic Auth (user and pass: admin)\nBroken Images\nCanvas\nChallenging DOM\nCheckboxes\nContext Menu\nDigest Authentication (user and pass: admin)\nDisappearing Elements\nDrag and Drop\nDropdown\nDynamic Content\nDynamic Controls\nDynamic Loading\nEntry Ad\nExit Intent\nFile Download\nFile Upload\nFloating Menu\nForgot Password\nForm Authentication\nFrames\nGeolocation\nHorizontal Slider\nHovers\nInfinite Scroll\nInputs\nJQuery UI Menus\nJavaScript Alerts\nJavaScript onload event error\nKey Presses\nLarge & Deep DOM\nLarge Form\nMultiple Select Dropdown\nMultiple Windows\nNested Frames\nNotification Messages\nRadio Buttons\nRead-only Inputs\nRedirect Link\nSecure File Download\nShadow DOM\nShifting Content\nSlow Resources\nSortable Data Tables\nStatus Codes\nSubdirectories\nTwo-Factor Login (user: tomsmith / pass: SuperSecretPassword!)\nTypos\nWYSIWYG Editor\nPowered by Elemental Selenium and Sauce Labs",
+      "links": [
+        {
+          "text": "A/B Testing",
+          "href": "https://the-internet.herokuapp.com/abtest"
+        },
+        {
+          "text": "Basic Auth",
+          "href": "https://the-internet.herokuapp.com/basic_auth"
+        },
+        {
+          "text": "Broken Images",
+          "href": "https://the-internet.herokuapp.com/broken_images"
+        },
+        {
+          "text": "Canvas",
+          "href": "https://the-internet.herokuapp.com/canvas"
+        },
+        {
+          "text": "Challenging DOM",
+          "href": "https://the-internet.herokuapp.com/challenging_dom"
+        },
+        {
+          "text": "Checkboxes",
+          "href": "https://the-internet.herokuapp.com/checkboxes"
+        },
+        {
+          "text": "Context Menu",
+          "href": "https://the-internet.herokuapp.com/context_menu"
+        },
+        {
+          "text": "Digest Authentication",
+          "href": "https://the-internet.herokuapp.com/digest_auth"
+        },
+        {
+          "text": "Disappearing Elements",
+          "href": "https://the-internet.herokuapp.com/disappearing_elements"
+        },
+        {
+          "text": "Drag and Drop",
+          "href": "https://the-internet.herokuapp.com/drag_and_drop"
+        },
+        {
+          "text": "Dropdown",
+          "href": "https://the-internet.herokuapp.com/dropdown"
+        },
+        {
+          "text": "Dynamic Content",
+          "href": "https://the-internet.herokuapp.com/dynamic_content"
+        },
+        {
+          "text": "Dynamic Controls",
+          "href": "https://the-internet.herokuapp.com/dynamic_controls"
+        },
+        {
+          "text": "Dynamic Loading",
+          "href": "https://the-internet.herokuapp.com/dynamic_loading"
+        },
+        {
+          "text": "Entry Ad",
+          "href": "https://the-internet.herokuapp.com/entry_ad"
+        },
+        {
+          "text": "Exit Intent",
+          "href": "https://the-internet.herokuapp.com/exit_intent"
+        },
+        {
+          "text": "File Download",
+          "href": "https://the-internet.herokuapp.com/download"
+        },
+        {
+          "text": "File Upload",
+          "href": "https://the-internet.herokuapp.com/upload"
+        },
+        {
+          "text": "Floating Menu",
+          "href": "https://the-internet.herokuapp.com/floating_menu"
+        },
+        {
+          "text": "Forgot Password",
+          "href": "https://the-internet.herokuapp.com/forgot_password"
+        },
+        {
+          "text": "Form Authentication",
+          "href": "https://the-internet.herokuapp.com/login"
+        },
+        {
+          "text": "Frames",
+          "href": "https://the-internet.herokuapp.com/frames"
+        },
+        {
+          "text": "Geolocation",
+          "href": "https://the-internet.herokuapp.com/geolocation"
+        },
+        {
+          "text": "Horizontal Slider",
+          "href": "https://the-internet.herokuapp.com/horizontal_slider"
+        },
+        {
+          "text": "Hovers",
+          "href": "https://the-internet.herokuapp.com/hovers"
+        },
+        {
+          "text": "Infinite Scroll",
+          "href": "https://the-internet.herokuapp.com/infinite_scroll"
+        },
+        {
+          "text": "Inputs",
+          "href": "https://the-internet.herokuapp.com/inputs"
+        },
+        {
+          "text": "JQuery UI Menus",
+          "href": "https://the-internet.herokuapp.com/jqueryui/menu"
+        },
+        {
+          "text": "JavaScript Alerts",
+          "href": "https://the-internet.herokuapp.com/javascript_alerts"
+        },
+        {
+          "text": "JavaScript onload event error",
+          "href": "https://the-internet.herokuapp.com/javascript_error"
+        },
+        {
+          "text": "Key Presses",
+          "href": "https://the-internet.herokuapp.com/key_presses"
+        },
+        {
+          "text": "Large & Deep DOM",
+          "href": "https://the-internet.herokuapp.com/large"
+        },
+        {
+          "text": "Large Form",
+          "href": "https://the-internet.herokuapp.com/large_form"
+        },
+        {
+          "text": "Multiple Select Dropdown",
+          "href": "https://the-internet.herokuapp.com/multiple_dropdown"
+        },
+        {
+          "text": "Multiple Windows",
+          "href": "https://the-internet.herokuapp.com/windows"
+        },
+        {
+          "text": "Nested Frames",
+          "href": "https://the-internet.herokuapp.com/nested_frames"
+        },
+        {
+          "text": "Notification Messages",
+          "href": "https://the-internet.herokuapp.com/notification_message"
+        },
+        {
+          "text": "Radio Buttons",
+          "href": "https://the-internet.herokuapp.com/radio_buttons"
+        },
+        {
+          "text": "Read-only Inputs",
+          "href": "https://the-internet.herokuapp.com/readonly"
+        },
+        {
+          "text": "Redirect Link",
+          "href": "https://the-internet.herokuapp.com/redirector"
+        },
+        {
+          "text": "Secure File Download",
+          "href": "https://the-internet.herokuapp.com/download_secure"
+        },
+        {
+          "text": "Shadow DOM",
+          "href": "https://the-internet.herokuapp.com/shadowdom"
+        },
+        {
+          "text": "Shifting Content",
+          "href": "https://the-internet.herokuapp.com/shifting_content"
+        },
+        {
+          "text": "Slow Resources",
+          "href": "https://the-internet.herokuapp.com/slow"
+        },
+        {
+          "text": "Sortable Data Tables",
+          "href": "https://the-internet.herokuapp.com/tables"
+        },
+        {
+          "text": "Status Codes",
+          "href": "https://the-internet.herokuapp.com/status_codes"
+        },
+        {
+          "text": "Subdirectories",
+          "href": "https://the-internet.herokuapp.com/subdirectories"
+        },
+        {
+          "text": "Two-Factor Login",
+          "href": "https://the-internet.herokuapp.com/two_factor"
+        },
+        {
+          "text": "Typos",
+          "href": "https://the-internet.herokuapp.com/typos"
+        },
+        {
+          "text": "WYSIWYG Editor",
+          "href": "https://the-internet.herokuapp.com/tinymce"
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "url": "https://the-internet.herokuapp.com/abtest",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p2.png",
+      "text": "A/B Test Variation 1\n\nAlso known as split testing. This is a way in which businesses are able to simultaneously test and learn different versions of a page to see which text and/or functionality works best towards a desired outcome (e.g. a user action such as a click-through).\n\nPowered by Elemental Selenium and Sauce Labs",
+      "links": []
+    },
+    {
+      "id": "p3",
+      "url": "https://the-internet.herokuapp.com/basic_auth",
+      "title": "",
+      "screenshot": "data/demo/internet/shots/p3.png",
+      "text": "Not authorized",
+      "links": []
+    },
+    {
+      "id": "p4",
+      "url": "https://the-internet.herokuapp.com/broken_images",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p4.png",
+      "text": "Broken Images\n  \nPowered by Elemental Selenium and Sauce Labs",
+      "links": []
+    },
+    {
+      "id": "p5",
+      "url": "https://the-internet.herokuapp.com/canvas",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p5.png",
+      "text": "Canvas\n\nClick inside the canvas to draw a dot. Click it, then type to write text; press Enter to submit it. Everything is drawn on the canvas, so it is not in the DOM.\n\nNothing yet\n\nPowered by Elemental Selenium and Sauce Labs",
+      "links": []
+    },
+    {
+      "id": "p6",
+      "url": "https://the-internet.herokuapp.com/challenging_dom",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p6.png",
+      "text": "Challenging DOM\n\nThe hardest part in automated web testing is finding the best locators (e.g., ones that well named, unique, and unlikely to change). It's more often than not that the application you're testing was not built with this concept in mind. This example demonstrates that with unique IDs, a table with no helpful locators, and a canvas element.\n\nfoo\nqux\nbar\n\nLorem\tIpsum\tDolor\tSit\tAmet\tDiceret\tAction\nIuvaret0\tApeirian0\tAdipisci0\tDefiniebas0\tConsequuntur0\tPhaedrum0\tedit delete\nIuvaret1\tApeirian1\tAdipisci1\tDefiniebas1\tConsequuntur1\tPhaedrum1\tedit delete\nIuvaret2\tApeirian2\tAdipisci2\tDefiniebas2\tConsequuntur2\tPhaedrum2\tedit delete\nIuvaret3\tApeirian3\tAdipisci3\tDefiniebas3\tConsequuntur3\tPhaedrum3\tedit delete\nIuvaret4\tApeirian4\tAdipisci4\tDefiniebas4\tConsequuntur4\tPhaedrum4\tedit delete\nIuvaret5\tApeirian5\tAdipisci5\tDefiniebas5\tConsequuntur5\tPhaedrum5\tedit delete\nIuvaret6\tApeirian6\tAdipisci6\tDefiniebas6\tConsequuntur6\tPhaedrum6\tedit delete\nIuvaret7\tApeirian7\tAdipisci7\tDefiniebas7\tConsequuntur7\tPhaedrum7\tedit delete\nIuvaret8\tApeirian8\tAdipisci8\tDefiniebas8\tConsequuntur8\tPhaedrum8\tedit delete\nIuvaret9\tApeirian9\tAdipisci9\tDefiniebas9\tConsequuntur9\tPhaedrum9\tedit delete\nPowered by Elemental Selenium and Sauce Labs",
+      "links": [
+        {
+          "text": "edit",
+          "href": "https://the-internet.herokuapp.com/challenging_dom"
+        }
+      ]
+    },
+    {
+      "id": "p7",
+      "url": "https://the-internet.herokuapp.com/checkboxes",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p7.png",
+      "text": "Checkboxes\n checkbox 1\n checkbox 2\nPowered by Elemental Selenium and Sauce Labs",
+      "links": []
+    },
+    {
+      "id": "p8",
+      "url": "https://the-internet.herokuapp.com/context_menu",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p8.png",
+      "text": "Context Menu\n\nContext menu items are custom additions that appear in the right-click menu.\n\nRight-click in the box below to see one called 'the-internet'. When you click it, it will trigger a JavaScript alert.\n\n\n\n\nPowered by Elemental Selenium and Sauce Labs",
+      "links": []
+    },
+    {
+      "id": "p9",
+      "url": "https://the-internet.herokuapp.com/disappearing_elements",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p9.png",
+      "text": "Disappearing Elements\n\nThis example demonstrates when elements on a page change by disappearing/reappearing on each page load.\n\nHome\nAbout\nContact Us\nPortfolio\nPowered by Elemental Selenium and Sauce Labs",
+      "links": [
+        {
+          "text": "Home",
+          "href": "https://the-internet.herokuapp.com/"
+        },
+        {
+          "text": "About",
+          "href": "https://the-internet.herokuapp.com/about"
+        },
+        {
+          "text": "Contact Us",
+          "href": "https://the-internet.herokuapp.com/contact-us"
+        },
+        {
+          "text": "Portfolio",
+          "href": "https://the-internet.herokuapp.com/portfolio"
+        }
+      ]
+    },
+    {
+      "id": "p10",
+      "url": "https://the-internet.herokuapp.com/drag_and_drop",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p10.png",
+      "text": "Drag and Drop\nA\nB\nPowered by Elemental Selenium and Sauce Labs",
+      "links": []
+    },
+    {
+      "id": "p11",
+      "url": "https://the-internet.herokuapp.com/dropdown",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p11.png",
+      "text": "Dropdown List\nPlease select an option\nOption 1\nOption 2\nPowered by Elemental Selenium and Sauce Labs",
+      "links": []
+    },
+    {
+      "id": "p12",
+      "url": "https://the-internet.herokuapp.com/dynamic_content",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p12.png",
+      "text": "Dynamic Content\n\nThis example demonstrates the ever-evolving nature of content by loading new text and images on each page refresh.\n\nTo make some of the content static append ?with_content=static or click here.\n\n\n\n\nEt facilis amet quidem exercitationem qui corrupti nulla debitis eligendi quia sapiente iusto eius qui impedit dolorem molestiae iure consequatur nisi illum quis odio aspernatur qui voluptatem fuga velit est.\n\n\n\nVoluptas optio dolorem rem hic aut eum est omnis ut velit est voluptatem consequatur architecto inventore pariatur ducimus qui iste quod dignissimos molestiae ratione voluptate dolores non quas provident aliquam.\n\n\n\nId enim architecto incidunt magni aspernatur nisi dignissimos assumenda deserunt doloribus pariatur vel corrupti omnis natus neque minima mollitia sunt et dolore nam et libero perspiciatis adipisci cum non facilis.\n\n\n\nPowered by Elemental Selenium and Sauce Labs",
+      "links": [
+        {
+          "text": "click here",
+          "href": "https://the-internet.herokuapp.com/dynamic_content?with_content=static"
+        }
+      ]
+    },
+    {
+      "id": "p13",
+      "url": "https://the-internet.herokuapp.com/dynamic_controls",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p13.png",
+      "text": "Dynamic Controls\n\nThis example demonstrates when elements (e.g., checkbox, input field, etc.) are changed asynchronously.\n\nRemove/add\n\n\n A checkbox\nRemove\n\n\nEnable/disable\n\n\nEnable\nPowered by Elemental Selenium and Sauce Labs",
+      "links": []
+    },
+    {
+      "id": "p14",
+      "url": "https://the-internet.herokuapp.com/dynamic_loading",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p14.png",
+      "text": "Dynamically Loaded Page Elements\n\nIt's common to see an action get triggered that returns a result dynamically. It does not rely on the page to reload or finish loading. The page automatically gets updated (e.g. hiding elements, showing elements, updating copy, etc) through the use of JavaScript.\n\nThere are two examples. One in which an element already exists on the page but it is not displayed. And another where the element is not on the page and gets added in.\n\n\nExample 1: Element on page that is hidden\n\nExample 2: Element rendered after the fact\nPowered by Elemental Selenium and Sauce Labs",
+      "links": [
+        {
+          "text": "Example 1: Element on page that is hidden",
+          "href": "https://the-internet.herokuapp.com/dynamic_loading/1"
+        },
+        {
+          "text": "Example 2: Element rendered after the fact",
+          "href": "https://the-internet.herokuapp.com/dynamic_loading/2"
+        }
+      ]
+    },
+    {
+      "id": "p15",
+      "url": "https://the-internet.herokuapp.com/entry_ad",
+      "title": "The Internet",
+      "screenshot": "data/demo/internet/shots/p15.png",
+      "text": "Entry Ad\n\nDisplays an ad on page load.\n\nIf closed, it will not appear on subsequent page loads.\n\nTo re-enable it, click here.\n\nTHIS IS A MODAL WINDOW\n\nIt's commonly used to encourage a user to take an action (e.g., give their e-mail address to sign up for something or disable their ad blocker).\n\nClose",
+      "links": [
+        {
+          "text": "click here",
+          "href": "https://the-internet.herokuapp.com/entry_ad"
+        }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "from": "p1",
+      "to": "p2",
+      "action": "click 'A/B Testing'"
+    },
+    {
+      "from": "p1",
+      "to": "p3",
+      "action": "click 'Basic Auth'"
+    },
+    {
+      "from": "p1",
+      "to": "p4",
+      "action": "click 'Broken Images'"
+    },
+    {
+      "from": "p1",
+      "to": "p5",
+      "action": "click 'Canvas'"
+    },
+    {
+      "from": "p1",
+      "to": "p6",
+      "action": "click 'Challenging DOM'"
+    },
+    {
+      "from": "p1",
+      "to": "p7",
+      "action": "click 'Checkboxes'"
+    },
+    {
+      "from": "p1",
+      "to": "p8",
+      "action": "click 'Context Menu'"
+    },
+    {
+      "from": "p1",
+      "to": "p9",
+      "action": "click 'Disappearing Elements'"
+    },
+    {
+      "from": "p1",
+      "to": "p10",
+      "action": "click 'Drag and Drop'"
+    },
+    {
+      "from": "p1",
+      "to": "p11",
+      "action": "click 'Dropdown'"
+    },
+    {
+      "from": "p1",
+      "to": "p12",
+      "action": "click 'Dynamic Content'"
+    },
+    {
+      "from": "p1",
+      "to": "p13",
+      "action": "click 'Dynamic Controls'"
+    },
+    {
+      "from": "p1",
+      "to": "p14",
+      "action": "click 'Dynamic Loading'"
+    },
+    {
+      "from": "p1",
+      "to": "p15",
+      "action": "click 'Entry Ad'"
+    },
+    {
+      "from": "p9",
+      "to": "p1",
+      "action": "click 'Home'"
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "app": "https://books.toscrape.com/",
+  "screens": [
+    {
+      "id": "s1",
+      "label": "All products",
+      "summary": "",
+      "url": "https://books.toscrape.com/",
+      "screenshot": "data/demo/books/shots/p1.png",
+      "phash": "d289a956698d729d",
+      "page_ids": [
+        "p1",
+        "p2"
+      ]
+    },
+    {
+      "id": "s2",
+      "label": "Travel",
+      "summary": "",
+      "url": "https://books.toscrape.com/catalogue/category/books/travel_2",
+      "screenshot": "data/demo/books/shots/p3.png",
+      "phash": "e99e566970876994",
+      "page_ids": [
+        "p3",
+        "p4"
+      ]
+    },
+    {
+      "id": "s3",
+      "label": "A Light in the Attic",
+      "summary": "",
+      "url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000",
+      "screenshot": "data/demo/books/shots/p5.png",
+      "phash": "bc0443d1389e67e7",
+      "page_ids": [
+        "p5",
+        "p6"
+      ]
+    },
+    {
+      "id": "s4",
+      "label": "All products",
+      "summary": "",
+      "url": "https://books.toscrape.com/catalogue/page-2.html",
+      "screenshot": "data/demo/books/shots/p7.png",
+      "phash": "b98646596686799d",
+      "page_ids": [
+        "p7",
+        "p10"
+      ]
+    },
+    {
+      "id": "s5",
+      "label": "Books",
+      "summary": "",
+      "url": "https://books.toscrape.com/catalogue/category/books_1/page-2.html",
+      "screenshot": "data/demo/books/shots/p8.png",
+      "phash": "b98646796286799d",
+      "page_ids": [
+        "p8",
+        "p11"
+      ]
+    },
+    {
+      "id": "s6",
+      "label": "Mystery",
+      "summary": "",
+      "url": "https://books.toscrape.com/catalogue/category/books/mystery_3/page-2.html",
+      "screenshot": "data/demo/books/shots/p9.png",
+      "phash": "f98686792786788d",
+      "page_ids": [
+        "p9",
+        "p12"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "s1",
+      "to": "s2",
+      "action": "click 'Travel'"
+    },
+    {
+      "from": "s1",
+      "to": "s2",
+      "action": "click 'Mystery'"
+    },
+    {
+      "from": "s1",
+      "to": "s3",
+      "action": "click 'A Light in the ...'"
+    },
+    {
+      "from": "s1",
+      "to": "s3",
+      "action": "click 'Tipping the Velvet'"
+    },
+    {
+      "from": "s1",
+      "to": "s4",
+      "action": "click 'next'"
+    },
+    {
+      "from": "s1",
+      "to": "s5",
+      "action": "click 'next'"
+    },
+    {
+      "from": "s2",
+      "to": "s1",
+      "action": "click 'Home'"
+    },
+    {
+      "from": "s2",
+      "to": "s1",
+      "action": "click 'Books'"
+    },
+    {
+      "from": "s2",
+      "to": "s3",
+      "action": "click 'It's Only the Himalayas'"
+    },
+    {
+      "from": "s2",
+      "to": "s3",
+      "action": "click 'Sharp Objects'"
+    },
+    {
+      "from": "s2",
+      "to": "s6",
+      "action": "click 'next'"
+    },
+    {
+      "from": "s3",
+      "to": "s1",
+      "action": "click 'Home'"
+    },
+    {
+      "from": "s3",
+      "to": "s1",
+      "action": "click 'Books'"
+    },
+    {
+      "from": "s3",
+      "to": "s2",
+      "action": "click 'Poetry'"
+    },
+    {
+      "from": "s3",
+      "to": "s2",
+      "action": "click 'Historical Fiction'"
+    },
+    {
+      "from": "s4",
+      "to": "s1",
+      "action": "click 'Home'"
+    },
+    {
+      "from": "s4",
+      "to": "s1",
+      "action": "click 'Books'"
+    },
+    {
+      "from": "s4",
+      "to": "s2",
+      "action": "click 'Travel'"
+    },
+    {
+      "from": "s4",
+      "to": "s2",
+      "action": "click 'Mystery'"
+    },
+    {
+      "from": "s4",
+      "to": "s3",
+      "action": "click 'In Her Wake'"
+    },
+    {
+      "from": "s5",
+      "to": "s1",
+      "action": "click 'Home'"
+    },
+    {
+      "from": "s5",
+      "to": "s1",
+      "action": "click 'Books'"
+    },
+    {
+      "from": "s5",
+      "to": "s2",
+      "action": "click 'Travel'"
+    },
+    {
+      "from": "s5",
+      "to": "s2",
+      "action": "click 'Mystery'"
+    },
+    {
+      "from": "s5",
+      "to": "s3",
+      "action": "click 'In Her Wake'"
+    },
+    {
+      "from": "s6",
+      "to": "s1",
+      "action": "click 'Home'"
+    },
+    {
+      "from": "s6",
+      "to": "s1",
+      "action": "click 'Books'"
+    },
+    {
+      "from": "s6",
+      "to": "s2",
+      "action": "click 'Travel'"
+    },
+    {
+      "from": "s6",
+      "to": "s2",
+      "action": "click 'Mystery'"
+    },
+    {
+      "from": "s6",
+      "to": "s3",
+      "action": "click 'The Mysterious Affair at ...'"
+    },
+    {
+      "from": "s4",
+      "to": "s3",
+      "action": "click 'A Light in the ...'"
+    },
+    {
+      "from": "s4",
+      "to": "s3",
+      "action": "click 'Tipping the Velvet'"
+    },
+    {
+      "from": "s5",
+      "to": "s3",
+      "action": "click 'A Light in the ...'"
+    },
+    {
+      "from": "s5",
+      "to": "s3",
+      "action": "click 'Tipping the Velvet'"
+    },
+    {
+      "from": "s6",
+      "to": "s3",
+      "action": "click 'Sharp Objects'"
+    }
+  ]
+}
