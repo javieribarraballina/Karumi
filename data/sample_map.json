@@ -1,0 +1,108 @@
+{
+  "app": "https://shop.example",
+  "screens": [
+    {
+      "id": "s1",
+      "label": "Home",
+      "summary": "Landing page with a category sidebar.",
+      "url": "https://shop.example/",
+      "screenshot": "data/sample/shots/s1.png",
+      "phash": "fe7e7e7e80818181",
+      "page_ids": [
+        "p1"
+      ]
+    },
+    {
+      "id": "s2",
+      "label": "Category list",
+      "summary": "Books of one category.",
+      "url": "https://shop.example/category",
+      "screenshot": "data/sample/shots/s2.png",
+      "phash": "fa7a6a858585857a",
+      "page_ids": [
+        "p2"
+      ]
+    },
+    {
+      "id": "s3",
+      "label": "Product detail",
+      "summary": "Details of one book.",
+      "url": "https://shop.example/product",
+      "screenshot": "data/sample/shots/s3.png",
+      "phash": "fa6a8585856a7a6a",
+      "page_ids": [
+        "p3"
+      ]
+    },
+    {
+      "id": "s4",
+      "label": "Basket",
+      "summary": "Items to buy.",
+      "url": "https://shop.example/basket",
+      "screenshot": "data/sample/shots/s4.png",
+      "phash": "fe7e81817e7e8081",
+      "page_ids": [
+        "p4"
+      ]
+    },
+    {
+      "id": "s5",
+      "label": "Checkout",
+      "summary": "Payment and address form.",
+      "url": "https://shop.example/checkout",
+      "screenshot": "data/sample/shots/s5.png",
+      "phash": "fa81857a7a85857a",
+      "page_ids": [
+        "p5"
+      ]
+    },
+    {
+      "id": "s6",
+      "label": "About",
+      "summary": "Information about the store.",
+      "url": "https://shop.example/about",
+      "screenshot": "data/sample/shots/s6.png",
+      "phash": "fe81817ec0817e7a",
+      "page_ids": [
+        "p6"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "s1",
+      "to": "s2",
+      "action": "click 'Category'"
+    },
+    {
+      "from": "s1",
+      "to": "s6",
+      "action": "click 'About'"
+    },
+    {
+      "from": "s2",
+      "to": "s3",
+      "action": "click 'Book'"
+    },
+    {
+      "from": "s3",
+      "to": "s4",
+      "action": "click 'Add to basket'"
+    },
+    {
+      "from": "s4",
+      "to": "s5",
+      "action": "click 'Checkout'"
+    },
+    {
+      "from": "s3",
+      "to": "s2",
+      "action": "click 'Back'"
+    },
+    {
+      "from": "s5",
+      "to": "s1",
+      "action": "click 'Home'"
+    }
+  ]
+}

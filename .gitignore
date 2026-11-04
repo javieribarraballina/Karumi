@@ -9,9 +9,11 @@ __pycache__/
 .cache/
 data/runs/
 .pytest_cache/
+.coverage
 
 # Agent internals
 .agents/
+.claude/
 
 # Secrets and local overrides
 .env
