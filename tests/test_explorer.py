@@ -187,3 +187,26 @@ def test_cookie_banner_is_accepted_and_page_named_by_heading(tmp_path):
     firsts = [p["text"].splitlines()[0] for p in raw["pages"]]
     assert firsts == ["Store home", "All laptops"]
     assert all("essential cookies" not in p["text"] for p in raw["pages"])
+
+
+def test_crawl_goes_deep_not_just_wide(tmp_path):
+    # Word names (no digits) so the URL-pattern limiter doesn't collapse the pages.
+    words = ["mac", "ipad", "watch", "tv", "music", "home", "pay", "card", "cash", "shop"]
+    root = tmp_path / "deep"
+    root.mkdir()
+    menu = "".join(f'<a href="sec-{w}.html">{w}</a> ' for w in words)
+    (root / "index.html").write_text(f"<html><body>{menu}</body></html>")
+    for w in words:
+        (root / f"sec-{w}.html").write_text(f'<html><body>{menu}<a href="more-{w}.html">More {w}</a></body></html>')
+        (root / f"more-{w}.html").write_text(f'<html><body>{menu}<a href="detail-{w}.html">Detail {w}</a></body></html>')
+        (root / f"detail-{w}.html").write_text(f"<html><body>{menu}<h1>Detail {w}</h1></body></html>")
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
+    handler.log_message = lambda *a: None
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        raw = explore(f"http://127.0.0.1:{server.server_port}/", str(tmp_path / "run"), max_pages=10, max_seconds=30)
+    finally:
+        server.shutdown()
+    kinds = {p["url"].rsplit("/", 1)[-1].split("-")[0] for p in raw["pages"]}
+    assert "detail" in kinds, "should reach 3 clicks deep (index > sec > more > detail) within 10 pages"

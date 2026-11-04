@@ -22,6 +22,7 @@ from playwright.sync_api import sync_playwright
 
 VIEWPORT = {"width": 1280, "height": 800}
 PER_PATTERN = 2        # visit at most this many pages per URL pattern (/book/{n})
+MAX_CHILDREN = 3       # links per page that go to the front queue: keeps the crawl going deeper
 TEXT_CHARS = 2000
 MAX_LINKS = 80         # links kept per page
 NAV_TIMEOUT_MS = 15000
@@ -80,7 +81,11 @@ STRIP_JS = r"""
 """
 
 HEADING_JS = r"""
-() => { const h = document.querySelector('h1'); return h ? h.innerText.trim().replace(/\s+/g, ' ').slice(0, 80) : ''; }
+() => {
+  const vis = (e) => e && e.innerText && e.innerText.trim() && e.getBoundingClientRect().height > 0;
+  const h = [...document.querySelectorAll('h1')].find(vis) || [...document.querySelectorAll('h2, h3')].find(vis);
+  return h ? h.innerText.trim().replace(/\s+/g, ' ').slice(0, 80) : '';
+}
 """
 
 
@@ -148,7 +153,9 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
     pattern_count = {url_pattern(start): 1}
     links_seen: list[tuple[str, str, str]] = []  # (from page id, target url, action)
     queue = deque([start])
+    later: deque[str] = deque()                # site-menu and overflow links, visited when queue runs dry
     queued = {start}
+    nav_hrefs: set[str] = set()
     deadline = time.monotonic() + max_seconds
 
     def report(msg: str) -> None:
@@ -164,8 +171,8 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
         try:
             context = browser.new_context(viewport=VIEWPORT, accept_downloads=False)
             page = context.new_page()
-            while queue and len(pages) < max_pages and time.monotonic() < deadline:
-                target = queue.popleft()
+            while (queue or later) and len(pages) < max_pages and time.monotonic() < deadline:
+                target = queue.popleft() if queue else later.popleft()
                 left_ms = lambda: max(1000, int((deadline - time.monotonic()) * 1000))  # noqa: E731
                 try:
                     response = page.goto(target, wait_until="domcontentloaded",
@@ -202,9 +209,9 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
                         heading = page.evaluate(HEADING_JS)
                     except Exception:
                         heading = ""
-                    # Lead with what names this page (h1, else <title>) so labels differ per screen.
-                    name = heading or title.split(" | ")[0].split(" - ")[0].strip()
-                    text = (name + "\n" + text if name else text)[:TEXT_CHARS]
+                    # Lead with the page's own heading (h1, else first h2/h3) so labels differ per
+                    # screen; never the site-wide <title>, which is often the same on every page.
+                    text = (heading + "\n" + text if heading else text)[:TEXT_CHARS]
                     links = []
                     for link in page.evaluate(LINKS_JS):
                         href = canon(urljoin(page.url, link["href"]))
@@ -218,9 +225,15 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
                     pattern_rep.setdefault(url_pattern(final), pid)
                     report(final)
 
+                    if not nav_hrefs:
+                        nav_hrefs.update(l["href"] for l in links)  # the start page's links ~ site menu
                     for link in links:
+                        links_seen.append((pid, link["href"], f"click '{link['text'] or link['href']}'"))
+                    # Content links (not in the site-wide menu) go first, so each page leads one level
+                    # deeper; menu links and overflow wait in `later` so breadth isn't lost.
+                    new = 0
+                    for link in sorted(links, key=lambda l: l["href"] in nav_hrefs and pid != "p1"):
                         href = link["href"]
-                        links_seen.append((pid, href, f"click '{link['text'] or href}'"))
                         if href in queued:
                             continue
                         pat = url_pattern(href)
@@ -228,7 +241,12 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
                             continue
                         pattern_count[pat] = pattern_count.get(pat, 0) + 1
                         queued.add(href)
-                        queue.append(href)
+                        menu = href in nav_hrefs and pid != "p1"
+                        if not menu and new < MAX_CHILDREN:
+                            queue.append(href)
+                            new += 1
+                        else:
+                            later.append(href)
                 except Exception as exc:  # one bad page must not kill the run
                     report(f"skip {target}: {type(exc).__name__}")
         finally:
