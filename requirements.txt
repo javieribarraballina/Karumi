@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+playwright
+pillow
+imagehash
+pytest
+pytest-cov
+httpx
+python-multipart
+anthropic
+openai
