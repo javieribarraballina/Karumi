@@ -16,17 +16,14 @@ from __future__ import annotations
 
 import json
 import re
-from urllib.parse import urlsplit
 
 # Tunable values in one place (Andrés can tune these against the ground truth).
 THRESHOLDS = {
-    "phash_same_screen": 10,   # max Hamming distance (of 64 bits) for a visual merge when texts also agree
-    "text_overlap_min": 0.5,   # min word overlap (Jaccard) required before a visual-only merge
-    "phash_no_text": 5,        # stricter cutoff for a visual-only merge when a page has no text
+    "phash_same_screen": 10,   # max Hamming distance (of 64 bits) for a visual merge
+    "text_overlap_min": 0.5,   # min word overlap (Jaccard) that a visual merge also needs
     "phash_score_span": 32,    # distance at which the phash score drops to 0 (32 ≈ unrelated images)
     "locate_confident": 0.80,  # phash score above which we trust phash without asking the LLM
     "locate_margin": 0.10,     # ...and the gap needed between the 1st and 2nd candidate
-    "slug_min_len": 25,        # path segments at least this long count as slugs
     "llm_max_candidates": 8,   # screens shown to the LLM in the locate fallback
 }
 
@@ -91,35 +88,34 @@ def _score(distance: int | None) -> float:
 
 
 # ---------------------------------------------------------------- url patterns
-_DIGITS = re.compile(r"^\d+$")
-_INDEX = {"index.html", "index.htm", "index.php", ""}
+# One rule for the whole project: the explorer's. Until juan/explorer is on
+# main (or if Playwright is missing), use an exact copy of his function.
+try:
+    from .explorer import url_pattern  # noqa: F401  (re-exported)
+except Exception:  # pragma: no cover - depends on what is merged
+    from urllib.parse import urldefrag, urlparse, urlunparse
 
+    def _normalize_url(url: str) -> str:
+        url, _ = urldefrag((url or "").strip())
+        p = urlparse(url)
+        path = re.sub(r"/index\.html?$", "/", p.path) or "/"
+        if len(path) > 1:
+            path = path.rstrip("/") or "/"
+        return urlunparse((p.scheme.lower(), p.netloc.lower(), path, "", p.query, ""))
 
-def url_pattern(url: str) -> str:
-    """Normalise a URL so pages built from the same template share a pattern.
-
-    /catalogue/a-light-in-the-attic_1000/index.html -> host/catalogue/{slug}
-    /book/123                                       -> host/book/{n}
-    /catalogue/page-2.html                          -> host/catalogue/{slug}.html
-    Query strings and fragments are ignored.
-    """
-    parts = urlsplit(url or "")
-    segs = [s for s in parts.path.split("/")]
-    out = []
-    for seg in segs:
-        if seg.lower() in _INDEX:
-            continue
-        stem, dot, ext = seg.rpartition(".") if "." in seg else (seg, "", "")
-        if not dot:
-            stem, ext = seg, ""
-        if _DIGITS.match(stem):
-            norm = "{n}"
-        elif any(c.isdigit() for c in stem) or len(stem) >= THRESHOLDS["slug_min_len"]:
-            norm = "{slug}"
-        else:
-            norm = stem.lower()
-        out.append(norm + (dot + ext.lower() if dot else ""))
-    return (parts.netloc.lower() + "/" + "/".join(out)).rstrip("/") or "/"
+    def url_pattern(url: str) -> str:
+        """Copy of explorer.url_pattern (Juan). Delete once juan/explorer is merged."""
+        p = urlparse(_normalize_url(url))
+        segments = []
+        for seg in p.path.split("/"):
+            if re.search(r"\d", seg):
+                segments.append("{n}")
+            elif len(seg) > 30 or seg.count("-") >= 4:
+                segments.append("{slug}")
+            else:
+                segments.append(seg)
+        query_keys = sorted(k.split("=")[0] for k in p.query.split("&") if k)
+        return "/".join(segments) + ("?" + "&".join(query_keys) if query_keys else "")
 
 
 # ------------------------------------------------------------- text overlap
@@ -141,62 +137,59 @@ def _overlap(a: set[str], b: set[str]) -> float:
 def cluster_pages(pages: list[dict]) -> list[list[str]]:
     """Group page ids that are the same screen.
 
-    Two pages are the same screen if
-      - their URL patterns match, OR
-      - their screenshots are close (phash ≤ THRESHOLDS["phash_same_screen"]) AND
-        their visible text overlaps (word Jaccard ≥ THRESHOLDS["text_overlap_min"]), OR
-      - one of them has no text and the screenshots are near-identical
-        (phash ≤ THRESHOLDS["phash_no_text"]).
-    Union-find keeps the grouping transitive. Output order follows the crawl.
+    1. Pages with the same URL pattern are one screen (all /book/{n} pages).
+    2. Pages with different URLs are merged only if they look alike
+       (phash ≤ THRESHOLDS["phash_same_screen"]) AND their visible text matches
+       (word Jaccard ≥ THRESHOLDS["text_overlap_min"]). Looks alone never merge
+       (plain white pages all hash alike); pages without text never merge visually.
+    3. No chaining: two groups merge only if EVERY page of one matches EVERY page
+       of the other, so A~B and B~C does not pull in a C that differs from A.
+    Output: groups in crawl order, page ids in crawl order inside each group.
     """
     ids = [p["id"] for p in pages]
-    parent = {i: i for i in ids}
-
-    def find(x):
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    def union(a, b):
-        ra, rb = find(a), find(b)
-        if ra != rb:
-            # keep the earliest-crawled page as root so output order is stable
-            if ids.index(ra) < ids.index(rb):
-                parent[rb] = ra
-            else:
-                parent[ra] = rb
-
-    patterns = {p["id"]: url_pattern(p.get("url", "")) for p in pages}
+    order = {pid: i for i, pid in enumerate(ids)}
     hashes = {p["id"]: p.get("phash") or screen_phash(p.get("screenshot")) for p in pages}
-
-    by_pattern: dict[str, str] = {}
-    for pid in ids:
-        pat = patterns[pid]
-        if pat in by_pattern:
-            union(by_pattern[pat], pid)
-        else:
-            by_pattern[pat] = pid
-
-    # Visual-only merges: similar screenshots are not enough on their own (plain
-    # white pages hash alike), so the visible text must overlap too. Pages with
-    # no text fall back to a much stricter image cutoff.
     words = {p["id"]: _words(p.get("text", "")) for p in pages}
+
+    # 1. URL pattern
+    group_of: dict[str, list[str]] = {}
+    by_pattern: dict[str, list[str]] = {}
+    for p in pages:
+        g = by_pattern.setdefault(url_pattern(p.get("url", "")), [])
+        g.append(p["id"])
+        group_of[p["id"]] = g
+
+    def visual_match(a: str, b: str) -> bool:
+        d = _hamming(hashes[a], hashes[b])
+        return (
+            d is not None
+            and d <= THRESHOLDS["phash_same_screen"]
+            and _overlap(words[a], words[b]) >= THRESHOLDS["text_overlap_min"]
+        )
+
+    # 2 + 3. visual AND text, complete linkage, closest pairs first
+    pairs = []
     for i, a in enumerate(ids):
         for b in ids[i + 1 :]:
-            d = _hamming(hashes[a], hashes[b])
-            if d is None:
-                continue
-            if words[a] and words[b]:
-                if d <= THRESHOLDS["phash_same_screen"] and _overlap(words[a], words[b]) >= THRESHOLDS["text_overlap_min"]:
-                    union(a, b)
-            elif d <= THRESHOLDS["phash_no_text"]:
-                union(a, b)
+            if group_of[a] is not group_of[b] and visual_match(a, b):
+                pairs.append((_hamming(hashes[a], hashes[b]), order[a], order[b], a, b))
+    for *_, a, b in sorted(pairs):
+        ga, gb = group_of[a], group_of[b]
+        if ga is gb:
+            continue
+        if all(visual_match(x, y) for x in ga for y in gb):
+            ga.extend(gb)
+            ga.sort(key=order.get)
+            for pid in gb:
+                group_of[pid] = ga
 
-    groups: dict[str, list[str]] = {}
+    seen, out = set(), []
     for pid in ids:
-        groups.setdefault(find(pid), []).append(pid)
-    return list(groups.values())
+        g = group_of[pid]
+        if id(g) not in seen:
+            seen.add(id(g))
+            out.append(list(g))
+    return out
 
 
 # ---------------------------------------------------------------- label_screen
@@ -242,9 +235,13 @@ def locate(screenshot_path: str, map: dict) -> dict:  # noqa: A002 (name fixed b
     Stage 1: compare perceptual hashes against every screen (fast, offline).
     Stage 2: if the best match is weak or the top two are close, ask the vision
     model to choose among the candidates. Falls back to stage 1 on any LLM error.
+    An unreadable screenshot returns screen_id None (never a guess).
+    Candidates are always sorted by score, highest first.
     """
     screens = map.get("screens", []) or []
     query = screen_phash(screenshot_path)
+    if query is None:  # unreadable or missing upload: never guess a screen
+        return {"screen_id": None, "confidence": 0.0, "candidates": [], "method": "unreadable"}
 
     scored = []
     for s in screens:
@@ -284,6 +281,7 @@ def locate(screenshot_path: str, map: dict) -> dict:  # noqa: A002 (name fixed b
         conf = float(data.get("confidence", 0.5))
         conf = round(min(1.0, max(0.0, conf)), 3)
         cands = [{"screen_id": sid, "score": conf}] + [c for c in top3 if c["screen_id"] != sid]
+        cands.sort(key=lambda c: c["score"], reverse=True)
         return {
             "screen_id": sid,
             "confidence": conf,

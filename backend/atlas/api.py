@@ -66,7 +66,8 @@ def _run(job_id: str, url: str):
     job = JOBS[job_id]
     try:
         out = RUNS_DIR / job_id
-        raw = explorer.explore(url, str(out))
+        raw = explorer.explore(url, str(out),
+                               on_progress=lambda n, total, _u: job.update(progress=f"{n}/{total} pages"))
         job["progress"] = "building map"
         (out / "map.json").write_text(json.dumps(graph.build_map(raw)))
         job.update(status="done", map_id=job_id, progress="done")

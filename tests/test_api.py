@@ -66,6 +66,22 @@ def test_explore_job_done(monkeypatch, tmp_path):
     assert client.get(f"/api/maps/{j['map_id']}").json()["app"] == "http://x"
 
 
+def test_explore_job_reports_progress(monkeypatch, tmp_path):
+    monkeypatch.setattr(api, "RUNS_DIR", tmp_path)
+    seen = {}
+
+    def fake(url, out_dir, on_progress=None, **k):
+        on_progress(7, 15, "http://x/a")
+        seen["mid"] = list(api.JOBS.values())[-1]["progress"]
+        return {"app": url, "pages": [], "transitions": []}
+
+    monkeypatch.setattr(explorer, "explore", fake)
+    monkeypatch.setattr(graph, "build_map", lambda raw: {"app": "x", "screens": [], "edges": []})
+    job = client.post("/api/explore", json={"url": "http://x"}).json()["job_id"]
+    wait_done(job)
+    assert seen["mid"] == "7/15 pages"
+
+
 def test_explore_job_error(monkeypatch, tmp_path):
     monkeypatch.setattr(api, "RUNS_DIR", tmp_path)
 

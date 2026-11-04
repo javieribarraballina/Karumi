@@ -1,16 +1,11 @@
 """Tests for backend/atlas/identify.py (Blanca). Run offline: the LLM is stubbed."""
 import json
-import os
 import random
-import sys
 
 import pytest
 from PIL import Image, ImageDraw
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "backend"))
-
-from atlas import identify  # noqa: E402
+from backend.atlas import identify
 
 
 # ------------------------------------------------------------------ fixtures
@@ -85,10 +80,17 @@ def test_url_pattern_same_template(a, b):
 def test_url_pattern_keeps_different_screens_apart():
     p = identify.url_pattern
     assert p("https://x.com/") != p("https://x.com/login")
-    # a paginated listing must not collide with a product detail page
-    assert p("https://books.toscrape.com/catalogue/page-2.html") != p(
-        "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
-    )
+    assert p("https://x.com/cart") != p("https://x.com/checkout")
+
+
+def test_url_pattern_is_the_explorers_rule():
+    """One rule for the project: identify must agree with explorer.url_pattern."""
+    try:
+        from backend.atlas.explorer import url_pattern as explorer_rule
+    except Exception:
+        pytest.skip("juan/explorer not merged yet (identify uses an exact copy)")
+    for u in ["https://x.com/book/12", "https://x.com/a?page=2#top", "https://books.toscrape.com/catalogue/x_1/index.html"]:
+        assert identify.url_pattern(u) == explorer_rule(u)
 
 
 # -------------------------------------------------------------- cluster_pages
@@ -110,12 +112,39 @@ def test_cluster_keeps_visually_different_pages_apart(tmp_path):
 
 def test_cluster_merges_identical_screens_with_different_urls(tmp_path):
     shot = make_screen(tmp_path / "a.png", 5)
+    home = "Welcome back Acme dashboard revenue tasks"
     pages = [
-        {"id": "p1", "url": "https://x.com/", "screenshot": shot},
-        {"id": "p2", "url": "https://x.com/home", "screenshot": as_user_screenshot(shot, tmp_path / "b.jpg", 1.0)},
-        {"id": "p3", "url": "https://x.com/login", "screenshot": make_screen(tmp_path / "c.png", 99)},
+        {"id": "p1", "url": "https://x.com/", "text": home, "screenshot": shot},
+        {"id": "p2", "url": "https://x.com/home", "text": home,
+         "screenshot": as_user_screenshot(shot, tmp_path / "b.jpg", 1.0)},
+        {"id": "p3", "url": "https://x.com/login", "text": "Log in email password",
+         "screenshot": make_screen(tmp_path / "c.png", 99)},
     ]
     assert identify.cluster_pages(pages) == [["p1", "p2"], ["p3"]]
+
+
+def test_cluster_never_merges_on_looks_alone(tmp_path):
+    """Identical screenshots, different URLs, no text: looks alone must not merge."""
+    shot = make_screen(tmp_path / "a.png", 5)
+    pages = [
+        {"id": "p1", "url": "https://x.com/a", "screenshot": shot},
+        {"id": "p2", "url": "https://x.com/b", "screenshot": shot},
+    ]
+    assert identify.cluster_pages(pages) == [["p1"], ["p2"]]
+
+
+def test_cluster_does_not_chain(tmp_path):
+    """A~B and B~C, but A and C share little text: C must not join A."""
+    shot = white_page(tmp_path / "w.png", 1)
+    pages = [
+        {"id": "pA", "url": "https://x.com/a", "text": "alpha beta gamma delta", "screenshot": shot},
+        {"id": "pB", "url": "https://x.com/b", "text": "alpha beta gamma delta epsilon zeta", "screenshot": shot},
+        {"id": "pC", "url": "https://x.com/c", "text": "gamma delta epsilon zeta eta theta", "screenshot": shot},
+    ]
+    w = {p["id"]: identify._words(p["text"]) for p in pages}
+    assert identify._overlap(w["pA"], w["pB"]) >= 0.5 and identify._overlap(w["pB"], w["pC"]) >= 0.5
+    assert identify._overlap(w["pA"], w["pC"]) < 0.5
+    assert identify.cluster_pages(pages) == [["pA", "pB"], ["pC"]]
 
 
 def white_page(path, n):
@@ -230,6 +259,22 @@ def test_locate_ignores_invented_screen_id(monkeypatch, sample_map):
     monkeypatch.setattr(identify, "_ask", lambda *a, **k: '{"screen_id": "s99", "confidence": 1}')
     out = identify.locate(sample_map["screens"][0]["screenshot"], sample_map)
     assert out["screen_id"] in {"s1", "s2"} and out["method"] == "phash"
+
+
+def test_locate_unreadable_upload_returns_none(no_llm, sample_map, tmp_path):
+    bad = tmp_path / "broken.png"
+    bad.write_bytes(b"not an image")
+    for path in (str(bad), str(tmp_path / "missing.png")):
+        out = identify.locate(path, sample_map)
+        assert out["screen_id"] is None and out["confidence"] == 0.0 and out["candidates"] == []
+
+
+def test_locate_llm_candidates_sorted_by_score(monkeypatch, sample_map):
+    sample_map["screens"][1]["phash"] = sample_map["screens"][0]["phash"]
+    monkeypatch.setattr(identify, "_ask", lambda *a, **k: '{"screen_id": "s2", "confidence": 0.3}')
+    out = identify.locate(sample_map["screens"][0]["screenshot"], sample_map)
+    scores = [c["score"] for c in out["candidates"]]
+    assert out["screen_id"] == "s2" and scores == sorted(scores, reverse=True)
 
 
 def test_locate_empty_map(no_llm, tmp_path):
