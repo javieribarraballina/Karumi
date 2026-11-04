@@ -106,3 +106,31 @@ def test_max_pages_is_respected(site, tmp_path):
 def test_bad_url_does_not_crash(tmp_path):
     raw = explore("http://127.0.0.1:9/", str(tmp_path), max_pages=3, max_seconds=10)
     assert raw["pages"] == []
+
+
+@pytest.mark.parametrize("href,text", [
+    ("http://a.com/?action=delete", "Go"), ("http://a.com/log-out", "Bye"), ("http://a.com/sign_out", "x"),
+    ("http://a.com/account/remove", "Settings"), ("http://a.com/ok", "Log out"),
+])
+def test_dangerous_links_are_never_followed(href, text):
+    from backend.atlas.explorer import _should_follow
+    assert not _should_follow(href, text, "a.com")
+
+
+def test_safe_links_are_followed():
+    from backend.atlas.explorer import _should_follow
+    assert _should_follow("http://www.a.com/pricing", "Pricing", "a.com")
+
+
+def test_progress_callback_errors_do_not_abort(site, tmp_path):
+    def boom(*a):
+        raise RuntimeError("ui went away")
+    raw = explore(site, str(tmp_path), max_pages=2, max_seconds=30, on_progress=boom)
+    assert len(raw["pages"]) == 2 and (tmp_path / "raw.json").exists()
+
+
+def test_time_budget_is_respected(site, tmp_path):
+    import time
+    t = time.monotonic()
+    explore(site, str(tmp_path), max_pages=50, max_seconds=2)
+    assert time.monotonic() - t < 8  # budget + browser start/stop

@@ -16,7 +16,7 @@ import re
 import time
 from collections import deque
 from typing import Callable
-from urllib.parse import urldefrag, urljoin, urlparse, urlunparse
+from urllib.parse import unquote, urldefrag, urljoin, urlparse, urlunparse
 
 from playwright.sync_api import sync_playwright
 
@@ -30,7 +30,7 @@ SETTLE_MS = 2500       # extra wait for JS-rendered content, capped
 SKIP_SCHEMES = ("mailto:", "tel:", "javascript:", "data:", "sms:", "ftp:")
 SKIP_EXT = (".pdf", ".zip", ".gz", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
             ".mp4", ".mp3", ".dmg", ".exe", ".csv", ".xlsx", ".docx", ".pptx", ".xml", ".json")
-DANGEROUS = re.compile(r"log\s?out|sign\s?out|delete|remove|unsubscribe|cancel account", re.I)
+DANGEROUS = re.compile(r"log[\s_-]?out|sign[\s_-]?out|delete|remove|destroy|unsubscribe|cancel[\s_-]?account", re.I)
 
 LINKS_JS = """
 () => Array.from(document.querySelectorAll('a[href]'))
@@ -79,7 +79,7 @@ def _should_follow(href: str, text: str, origin: str) -> bool:
         return False
     if p.path.lower().endswith(SKIP_EXT):
         return False
-    return not (DANGEROUS.search(text) or DANGEROUS.search(p.path))
+    return not (DANGEROUS.search(text) or DANGEROUS.search(unquote(p.path + "?" + p.query)))
 
 
 def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
@@ -89,19 +89,19 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
         url = "https://" + url
     start = normalize_url(url)
     origin = _site(urlparse(start).netloc)
-    scheme = urlparse(start).scheme
+    scheme, host = urlparse(start).scheme, urlparse(start).netloc
 
     def canon(u: str) -> str:
-        # Sites often link to themselves over http and https; treat both as one page.
+        # Sites link to themselves over http/https and with/without www; treat as one page.
         u = normalize_url(u)
         p = urlparse(u)
-        return urlunparse(p._replace(scheme=scheme)) if _site(p.netloc) == origin else u
+        return urlunparse(p._replace(scheme=scheme, netloc=host)) if _site(p.netloc) == origin else u
     shots_dir = os.path.join(out_dir, "shots")
     os.makedirs(shots_dir, exist_ok=True)
 
     pages: list[dict] = []
     url_to_id: dict[str, str] = {}             # requested or final url -> page id
-    pattern_first = {url_pattern(start): start}  # pattern -> first url queued with it
+    pattern_rep: dict[str, str] = {}           # pattern -> first captured page id with it
     pattern_count = {url_pattern(start): 1}
     links_seen: list[tuple[str, str, str]] = []  # (from page id, target url, action)
     queue = deque([start])
@@ -111,7 +111,10 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
     def report(msg: str) -> None:
         print(f"[explorer] {len(pages)}/{max_pages} {msg}", flush=True)
         if on_progress:
-            on_progress(len(pages), max_pages, msg)
+            try:
+                on_progress(len(pages), max_pages, msg)
+            except Exception:
+                pass
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
@@ -120,12 +123,14 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
             page = context.new_page()
             while queue and len(pages) < max_pages and time.monotonic() < deadline:
                 target = queue.popleft()
+                left_ms = lambda: max(1000, int((deadline - time.monotonic()) * 1000))  # noqa: E731
                 try:
-                    response = page.goto(target, wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS)
+                    response = page.goto(target, wait_until="domcontentloaded",
+                                         timeout=min(NAV_TIMEOUT_MS, left_ms()))
                     if response and "html" not in response.headers.get("content-type", "html"):
                         continue
                     try:
-                        page.wait_for_load_state("networkidle", timeout=SETTLE_MS)
+                        page.wait_for_load_state("networkidle", timeout=min(SETTLE_MS, left_ms()))
                     except Exception:
                         pass  # analytics-heavy sites never go idle; what we have is enough
                     final = canon(page.url)
@@ -137,9 +142,9 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
 
                     pid = f"p{len(pages) + 1}"
                     shot = os.path.join(shots_dir, f"{pid}.png")
-                    page.screenshot(path=shot)
+                    page.screenshot(path=shot, timeout=min(10000, left_ms()))
                     try:
-                        text = page.inner_text("body")[:TEXT_CHARS]
+                        text = page.inner_text("body", timeout=min(5000, left_ms()))[:TEXT_CHARS]
                     except Exception:
                         text = ""
                     links = []
@@ -152,6 +157,7 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
                     pages.append({"id": pid, "url": final, "title": page.title(),
                                   "screenshot": shot, "text": text, "links": links})
                     url_to_id[target] = url_to_id[final] = pid
+                    pattern_rep.setdefault(url_pattern(final), pid)
                     report(final)
 
                     for link in links:
@@ -163,7 +169,6 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
                         if pattern_count.get(pat, 0) >= PER_PATTERN:
                             continue
                         pattern_count[pat] = pattern_count.get(pat, 0) + 1
-                        pattern_first.setdefault(pat, href)
                         queued.add(href)
                         queue.append(href)
                 except Exception as exc:  # one bad page must not kill the run
@@ -172,10 +177,10 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
             browser.close()
 
     # A link to a page we skipped (pattern full) still points at that kind of screen,
-    # so route it to the first visited page with the same pattern.
+    # so route it to the first captured page whose final URL has the same pattern.
     transitions, seen_edges = [], set()
     for src, href, action in links_seen:
-        dst = url_to_id.get(href) or url_to_id.get(pattern_first.get(url_pattern(href), ""))
+        dst = url_to_id.get(href) or pattern_rep.get(url_pattern(href))
         if dst and dst != src and (src, dst) not in seen_edges:
             seen_edges.add((src, dst))
             transitions.append({"from": src, "to": dst, "action": action})
