@@ -82,6 +82,17 @@ def test_explore_job_reports_progress(monkeypatch, tmp_path):
     assert seen["mid"] == "7/15 pages"
 
 
+def test_explore_limits_default_and_override(monkeypatch, tmp_path):
+    monkeypatch.setattr(api, "RUNS_DIR", tmp_path)
+    seen = []
+    monkeypatch.setattr(explorer, "explore", lambda url, out_dir, **k: seen.append(k) or {"app": url, "pages": [], "transitions": []})
+    monkeypatch.setattr(graph, "build_map", lambda raw: {"app": "x", "screens": [], "edges": []})
+    wait_done(client.post("/api/explore", json={"url": "http://x"}).json()["job_id"])
+    wait_done(client.post("/api/explore", json={"url": "http://x", "max_pages": 40, "max_seconds": 300}).json()["job_id"])
+    assert (seen[0]["max_pages"], seen[0]["max_seconds"]) == (15, 90)
+    assert (seen[1]["max_pages"], seen[1]["max_seconds"]) == (40, 300)
+
+
 def test_explore_job_error(monkeypatch, tmp_path):
     monkeypatch.setattr(api, "RUNS_DIR", tmp_path)
 
