@@ -16,8 +16,8 @@ def build_map(raw: dict) -> dict:
     edges, seen = [], set()
     for t in raw["transitions"]:
         a, b = page_to_screen.get(t["from"]), page_to_screen.get(t["to"])
-        if a and b and a != b and (a, b, t["action"]) not in seen:
-            seen.add((a, b, t["action"]))
+        if a and b and a != b and (a, b) not in seen:  # one edge per pair; the first link text is enough to navigate
+            seen.add((a, b))
             edges.append({"from": a, "to": b, "action": t["action"]})
     return {"app": raw["app"], "screens": screens, "edges": edges}
 
