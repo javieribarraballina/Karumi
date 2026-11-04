@@ -7,19 +7,16 @@
     "Category: Historical Fiction",
     "Product Detail: A Light in the Attic",
     "Product Detail: Tipping the Velvet",
-    "Product Detail: Soumission",
-    "Basket / Checkout"
+    "Product Detail: Soumission"
   ],
   "url_to_screen": {
-    "^https?://books\\.toscrape\\.com/?$": "Home",
-    "^https?://books\\.toscrape\\.com/index\\.html$": "Home",
-    "^https?://books\\.toscrape\\.com/catalogue/category/books/travel_2/.*": "Category: Travel",
-    "^https?://books\\.toscrape\\.com/catalogue/category/books/mystery_3/.*": "Category: Mystery",
-    "^https?://books\\.toscrape\\.com/catalogue/category/books/historical-fiction_4/.*": "Category: Historical Fiction",
-    "^https?://books\\.toscrape\\.com/catalogue/a-light-in-the-attic_1000/.*": "Product Detail: A Light in the Attic",
-    "^https?://books\\.toscrape\\.com/catalogue/tipping-the-velvet_999/.*": "Product Detail: Tipping the Velvet",
-    "^https?://books\\.toscrape\\.com/catalogue/soumission_998/.*": "Product Detail: Soumission",
-    "^https?://books\\.toscrape\\.com/basket/.*": "Basket / Checkout"
+    "^https?://books\\.toscrape\\.com/?(index\\.html)?$": "Home",
+    "^https?://books\\.toscrape\\.com/catalogue/category/books/travel_2/?.*": "Category: Travel",
+    "^https?://books\\.toscrape\\.com/catalogue/category/books/mystery_3/?.*": "Category: Mystery",
+    "^https?://books\\.toscrape\\.com/catalogue/category/books/historical-fiction_4/?.*": "Category: Historical Fiction",
+    "^https?://books\\.toscrape\\.com/catalogue/a-light-in-the-attic_1000/?.*": "Product Detail: A Light in the Attic",
+    "^https?://books\\.toscrape\\.com/catalogue/tipping-the-velvet_999/?.*": "Product Detail: Tipping the Velvet",
+    "^https?://books\\.toscrape\\.com/catalogue/soumission_998/?.*": "Product Detail: Soumission"
   },
   "paths": [
     {
