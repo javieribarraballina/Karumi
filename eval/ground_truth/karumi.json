@@ -1,0 +1,29 @@
+{
+  "app": "https://karumi.ai",
+  "screens": [
+    "Landing Page / Home",
+    "About Page",
+    "Hackathon Brief",
+    "Product Demo Request / Contact"
+  ],
+  "url_to_screen": {
+    "^https?://karumi\\.ai/?$": "Landing Page / Home",
+    "^https?://karumi\\.ai/(es/)?about/?": "About Page",
+    "^https?://karumi\\.ai/hackathon/?": "Hackathon Brief",
+    "^https?://karumi\\.ai/(contact|demo)/?": "Product Demo Request / Contact"
+  },
+  "paths": [
+    {
+      "from": "Landing Page / Home",
+      "to": "About Page",
+      "expected_clicks": 1,
+      "actions": ["click 'About' in navigation"]
+    },
+    {
+      "from": "Landing Page / Home",
+      "to": "Hackathon Brief",
+      "expected_clicks": 1,
+      "actions": ["navigate to /hackathon"]
+    }
+  ]
+}
