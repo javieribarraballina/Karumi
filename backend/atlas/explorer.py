@@ -58,7 +58,8 @@ def url_pattern(url: str) -> str:
     segments = []
     for seg in p.path.split("/"):
         if re.search(r"\d", seg):
-            segments.append("{n}")
+            extension = re.search(r"\.[a-zA-Z]+$", seg)
+            segments.append("{n}" + (extension.group() if extension else ""))
         elif len(seg) > 30 or seg.count("-") >= 4:
             segments.append("{slug}")
         else:

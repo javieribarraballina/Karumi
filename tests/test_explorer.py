@@ -58,6 +58,39 @@ def test_url_pattern_collapses_ids_and_slugs():
     assert url_pattern("https://a.com/about") != url_pattern("https://a.com/pricing")
 
 
+def test_url_pattern_separates_listing_and_product_pages():
+    assert url_pattern("https://books.toscrape.com/catalogue/page-2.html") != url_pattern(
+        "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000")
+
+
+@pytest.mark.parametrize("first, second", [
+    ("/catalogue/a-light-in-the-attic_1000", "/catalogue/tipping-the-velvet_999"),
+    ("/catalogue/page-2.html", "/catalogue/page-3.html"),
+    ("/catalogue/category/books/travel_2", "/catalogue/category/books/mystery_3"),
+    ("/catalogue/category/books/mystery_3", "/catalogue/category/books/historical-fiction_4"),
+    ("/category/books/travel_2/page-2.html", "/category/books/mystery_3/page-2.html"),
+    ("/book/12", "/book/99"),
+    ("/item/1.html", "/item/2.html"),
+])
+def test_url_pattern_collapses_same_kind_pages(first, second):
+    assert url_pattern("https://a.com" + first) == url_pattern("https://a.com" + second)
+
+
+@pytest.mark.parametrize("segment, expected", [
+    ("page-2.html", "{n}.html"),
+    ("page-2.htm", "{n}.htm"),
+    ("page-2.php", "{n}.php"),
+    ("v1.2", "{n}"),
+    ("v1.html2", "{n}"),
+])
+def test_url_pattern_preserves_only_final_letter_extensions(segment, expected):
+    assert url_pattern("https://a.com/" + segment) == "/" + expected
+
+
+def test_url_pattern_keeps_query_keys_distinct():
+    assert url_pattern("https://a.com/?search=x") != url_pattern("https://a.com/?login=1")
+
+
 def test_crawl_matches_contract(crawl):
     raw, out = crawl
     assert set(raw) == {"app", "pages", "transitions"}
