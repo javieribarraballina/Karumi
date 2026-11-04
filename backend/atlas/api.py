@@ -60,7 +60,7 @@ def locate(map_id: str, file: UploadFile = File(...)):
 
 class ExploreBody(BaseModel):
     url: str
-    max_pages: int = 60  # ~1–2.5 s per page measured live
+    max_pages: int = 100  # 6 parallel tabs: ~0.5–1 s per page measured live
     max_seconds: int = 180
 
 
