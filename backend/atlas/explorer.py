@@ -1,6 +1,7 @@
 """Explorer (Juan): crawl an app it has never seen and capture its screens.
 
-explore(url, out_dir) does a bounded, same-origin BFS with Playwright and returns
+explore(url, out_dir) does a bounded, same-origin BFS with Playwright (several tabs in
+parallel) and returns
 the "Raw crawl" dict from README.md, also written to <out_dir>/raw.json.
 
 Run by hand:
@@ -10,6 +11,7 @@ Run by hand:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import re
@@ -18,11 +20,12 @@ from collections import deque
 from typing import Callable
 from urllib.parse import unquote, urldefrag, urljoin, urlparse, urlunparse
 
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 VIEWPORT = {"width": 1280, "height": 800}
 PER_PATTERN = 2        # visit at most this many pages per URL pattern (/book/{n})
 MAX_CHILDREN = 3       # links per page that go to the front queue: keeps the crawl going deeper
+WORKERS = 4            # pages loaded in parallel (tabs of one browser)
 TEXT_CHARS = 2000
 MAX_LINKS = 80         # links kept per page
 NAV_TIMEOUT_MS = 15000
@@ -145,8 +148,17 @@ def _should_follow(href: str, text: str, origin: str) -> bool:
 
 
 def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
-            on_progress: Callable[[int, int, str], None] | None = None) -> dict:
-    """Returns the Raw crawl dict; also writes <out_dir>/raw.json and shots/*.png"""
+            on_progress: Callable[[int, int, str], None] | None = None, workers: int = WORKERS) -> dict:
+    """Returns the Raw crawl dict; also writes <out_dir>/raw.json and shots/*.png.
+
+    Loads `workers` pages at once (tabs of one browser). Must not be called from a running
+    asyncio loop; the API calls it from a worker thread.
+    """
+    return asyncio.run(_explore(url, out_dir, max_pages, max_seconds, on_progress, max(1, workers)))
+
+
+async def _explore(url: str, out_dir: str, max_pages: int, max_seconds: int,
+                   on_progress: Callable[[int, int, str], None] | None, workers: int) -> dict:
     if "://" not in url:
         url = "https://" + url
     start = normalize_url(url)
@@ -173,6 +185,8 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
     nav_hrefs: set[str] = set()
     came_from: dict[str, str] = {}             # queued url -> id of the page whose link we followed
     deadline = time.monotonic() + max_seconds
+    next_id = 0
+    active = 0                                 # pages being loaded right now (count toward max_pages)
 
     def report(msg: str) -> None:
         print(f"[explorer] {len(pages)}/{max_pages} {msg}", flush=True)
@@ -182,94 +196,127 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
             except Exception:
                 pass
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+    def left_ms() -> int:
+        return max(1000, int((deadline - time.monotonic()) * 1000))
+
+    async def visit(page, target: str) -> None:
+        nonlocal next_id
+        response = await page.goto(target, wait_until="domcontentloaded", timeout=min(NAV_TIMEOUT_MS, left_ms()))
+        if response and "html" not in response.headers.get("content-type", "html"):
+            return
         try:
-            context = browser.new_context(viewport=VIEWPORT, accept_downloads=False)
-            page = context.new_page()
-            while (queue or later) and len(pages) < max_pages and time.monotonic() < deadline:
-                target = queue.popleft() if queue else later.popleft()
-                left_ms = lambda: max(1000, int((deadline - time.monotonic()) * 1000))  # noqa: E731
-                try:
-                    response = page.goto(target, wait_until="domcontentloaded",
-                                         timeout=min(NAV_TIMEOUT_MS, left_ms()))
-                    if response and "html" not in response.headers.get("content-type", "html"):
-                        continue
-                    try:
-                        page.wait_for_load_state("networkidle", timeout=min(SETTLE_MS, left_ms()))
-                    except Exception:
-                        pass  # analytics-heavy sites never go idle; what we have is enough
-                    final = canon(page.url)
-                    if _site(urlparse(final).netloc) != origin:
-                        continue  # redirected off-site
-                    if final in url_to_id:
-                        url_to_id[target] = url_to_id[final]
-                        continue  # redirect to a page we already have
+            await page.wait_for_load_state("networkidle", timeout=min(SETTLE_MS, left_ms()))
+        except Exception:
+            pass  # analytics-heavy sites never go idle; what we have is enough
+        final = canon(page.url)
+        if _site(urlparse(final).netloc) != origin:
+            return  # redirected off-site
+        if final in url_to_id:
+            url_to_id[target] = url_to_id[final]
+            return  # redirect to a page we already have (or another tab is capturing it)
 
-                    try:
-                        if page.evaluate(CONSENT_JS):
-                            page.wait_for_timeout(600)
-                        page.evaluate(STRIP_JS)
-                    except Exception:
-                        pass  # a banner we can't handle must not lose the page
+        # Reserve the id and URL before the next await, so two tabs never capture one page.
+        next_id += 1
+        pid = f"p{next_id}"
+        url_to_id[target] = url_to_id[final] = pid
+        try:
+            try:
+                if await page.evaluate(CONSENT_JS):
+                    await page.wait_for_timeout(600)
+                await page.evaluate(STRIP_JS)
+            except Exception:
+                pass  # a banner we can't handle must not lose the page
+            shot = os.path.join(shots_dir, f"{pid}.png")
+            await page.screenshot(path=shot, timeout=min(10000, left_ms()))
+            title = await page.title()
+            try:
+                text = await page.inner_text("body", timeout=min(5000, left_ms()))
+            except Exception:
+                text = ""
+            try:
+                heading = await page.evaluate(HEADING_JS)
+            except Exception:
+                heading = ""
+            raw_links = await page.evaluate(LINKS_JS)
+            here = page.url
+        except Exception:
+            for k in [k for k, v in url_to_id.items() if v == pid]:
+                del url_to_id[k]
+            raise
 
-                    pid = f"p{len(pages) + 1}"
-                    shot = os.path.join(shots_dir, f"{pid}.png")
-                    page.screenshot(path=shot, timeout=min(10000, left_ms()))
-                    title = page.title()
-                    try:
-                        text = page.inner_text("body", timeout=min(5000, left_ms()))
-                    except Exception:
-                        text = ""
-                    try:
-                        heading = page.evaluate(HEADING_JS)
-                    except Exception:
-                        heading = ""
-                    # Lead with the page's own heading (h1, else first h2/h3) so labels differ per
-                    # screen; never the site-wide <title>, which is often the same on every page.
-                    text = (heading + "\n" + text if heading else text)[:TEXT_CHARS]
-                    links = []
-                    for link in page.evaluate(LINKS_JS):
-                        href = canon(urljoin(page.url, link["href"]))
-                        if _should_follow(href, link["text"], origin):
-                            links.append({"text": link["text"], "href": href})
-                    links = list({l["href"]: l for l in links}.values())[:MAX_LINKS]
+        # From here on no awaits: the shared queues change atomically.
+        # Lead with the page's own heading (h1, else first h2/h3) so labels differ per
+        # screen; never the site-wide <title>, which is often the same on every page.
+        text = (heading + "\n" + text if heading else text)[:TEXT_CHARS]
+        links = []
+        for link in raw_links:
+            href = canon(urljoin(here, link["href"]))
+            if _should_follow(href, link["text"], origin):
+                links.append({"text": link["text"], "href": href})
+        links = list({l["href"]: l for l in links}.values())[:MAX_LINKS]
 
-                    pages.append({"id": pid, "url": final, "title": title,
-                                  "screenshot": shot, "text": text, "links": links})
-                    url_to_id[target] = url_to_id[final] = pid
-                    if target in came_from:
-                        back_to.append((pid, came_from[target]))
-                    pattern_rep.setdefault(url_pattern(final), pid)
-                    report(final)
+        pages.append({"id": pid, "url": final, "title": title,
+                      "screenshot": shot, "text": text, "links": links})
+        if target in came_from:
+            back_to.append((pid, came_from[target]))
+        pattern_rep.setdefault(url_pattern(final), pid)
+        report(final)
 
-                    if not nav_hrefs:
-                        nav_hrefs.update(l["href"] for l in links)  # the start page's links ~ site menu
-                    for link in links:
-                        links_seen.append((pid, link["href"], f"click '{link_name(link['text'], link['href'])}'"))
-                    # Content links (not in the site-wide menu) go first, so each page leads one level
-                    # deeper; menu links and overflow wait in `later` so breadth isn't lost.
-                    new = 0
-                    for link in sorted(links, key=lambda l: l["href"] in nav_hrefs and pid != "p1"):
-                        href = link["href"]
-                        if href in queued:
-                            continue
-                        pat = url_pattern(href)
-                        if pattern_count.get(pat, 0) >= PER_PATTERN:
-                            continue
-                        pattern_count[pat] = pattern_count.get(pat, 0) + 1
-                        queued.add(href)
-                        came_from.setdefault(href, pid)
-                        menu = href in nav_hrefs and pid != "p1"
-                        if not menu and new < MAX_CHILDREN:
-                            queue.append(href)
-                            new += 1
-                        else:
-                            later.append(href)
-                except Exception as exc:  # one bad page must not kill the run
-                    report(f"skip {target}: {type(exc).__name__}")
+        if not nav_hrefs:
+            nav_hrefs.update(l["href"] for l in links)  # the start page's links ~ site menu
+        for link in links:
+            links_seen.append((pid, link["href"], f"click '{link_name(link['text'], link['href'])}'"))
+        # Content links (not in the site-wide menu) go first, so each page leads one level
+        # deeper; menu links and overflow wait in `later` so breadth isn't lost.
+        new = 0
+        for link in sorted(links, key=lambda l: l["href"] in nav_hrefs and pid != "p1"):
+            href = link["href"]
+            if href in queued:
+                continue
+            pat = url_pattern(href)
+            if pattern_count.get(pat, 0) >= PER_PATTERN:
+                continue
+            pattern_count[pat] = pattern_count.get(pat, 0) + 1
+            queued.add(href)
+            came_from.setdefault(href, pid)
+            menu = href in nav_hrefs and pid != "p1"
+            if not menu and new < MAX_CHILDREN:
+                queue.append(href)
+                new += 1
+            else:
+                later.append(href)
+
+    async def worker(page) -> None:
+        nonlocal active
+        while len(pages) < max_pages and time.monotonic() < deadline:
+            # Menu links only when no deeper link is waiting and at most one tab is busy:
+            # busy tabs are about to add content links, which should go first.
+            use_later = not queue and later and active <= 1
+            if not queue and not use_later:
+                if active == 0 and not later:
+                    return  # nothing left anywhere
+                await asyncio.sleep(0.05)
+                continue
+            if len(pages) + active >= max_pages:
+                await asyncio.sleep(0.05)  # enough pages in flight to hit the limit
+                continue
+            target = queue.popleft() if queue else later.popleft()
+            active += 1
+            try:
+                await visit(page, target)
+            except Exception as exc:  # one bad page must not kill the run
+                report(f"skip {target}: {type(exc).__name__}")
+            finally:
+                active -= 1
+
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        try:
+            context = await browser.new_context(viewport=VIEWPORT, accept_downloads=False)
+            tabs = [await context.new_page() for _ in range(workers)]
+            await asyncio.gather(*(worker(tab) for tab in tabs))
         finally:
-            browser.close()
+            await browser.close()
 
     # A link to a page we skipped (pattern full) still points at that kind of screen,
     # so route it to the first captured page whose final URL has the same pattern.
@@ -287,6 +334,8 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
             seen_edges.add((src, dst))
             transitions.append({"from": src, "to": dst, "action": "go back"})
 
+    # Tabs finish out of order; keep pages in id order (p1 = start page) for readers.
+    pages.sort(key=lambda p: int(p["id"][1:]))
     raw = {"app": start, "pages": pages, "transitions": transitions}
     with open(os.path.join(out_dir, "raw.json"), "w") as f:
         json.dump(raw, f, indent=2, ensure_ascii=False)
@@ -300,5 +349,6 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="data/runs/latest")
     ap.add_argument("--max-pages", type=int, default=15)
     ap.add_argument("--max-seconds", type=int, default=90)
+    ap.add_argument("--workers", type=int, default=WORKERS)
     args = ap.parse_args()
-    explore(args.url, args.out, args.max_pages, args.max_seconds)
+    explore(args.url, args.out, args.max_pages, args.max_seconds, workers=args.workers)
