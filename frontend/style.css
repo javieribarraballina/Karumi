@@ -308,3 +308,17 @@ button:disabled { opacity: .5; cursor: wait; }
   font-weight: 600;
   pointer-events: none;
 }
+
+.link-toggle {
+  margin-left: 8px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink-soft);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.link-toggle:hover { color: inherit; }

@@ -167,3 +167,23 @@ def test_time_budget_is_respected(site, tmp_path):
     t = time.monotonic()
     explore(site, str(tmp_path), max_pages=50, max_seconds=2)
     assert time.monotonic() - t < 8  # budget + browser start/stop
+
+
+def test_cookie_banner_is_accepted_and_page_named_by_heading(tmp_path):
+    root = tmp_path / "site"
+    root.mkdir()
+    banner = ('<div id="cookie-banner" style="position:fixed;bottom:0">We use essential cookies to make our site work.'
+              ' <button onclick="this.parentNode.remove()">Accept all</button></div>')
+    (root / "index.html").write_text(f'<html><body>{banner}<h1>Store home</h1><a href="shop.html">Shop</a></body></html>')
+    (root / "shop.html").write_text(f'<html><body>{banner}<h1>All laptops</h1></body></html>')
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
+    handler.log_message = lambda *a: None
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        raw = explore(f"http://127.0.0.1:{server.server_port}/", str(tmp_path / "run"), max_pages=5, max_seconds=30)
+    finally:
+        server.shutdown()
+    firsts = [p["text"].splitlines()[0] for p in raw["pages"]]
+    assert firsts == ["Store home", "All laptops"]
+    assert all("essential cookies" not in p["text"] for p in raw["pages"])

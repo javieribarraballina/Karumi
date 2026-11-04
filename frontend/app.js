@@ -204,7 +204,19 @@ function renderGraph(map, homeId) {
     for (const edge of edges) edge.classes = treeIds.has(edge.data.id) ? "quiet" : "quiet extra";
   }
   $("graph-hint").hidden = !dense;
-  $("graph-hint").textContent = `Showing ${treeIds.size} of ${edges.length} links. Click a screen to see its links.`;
+  const hintText = (all) => all
+    ? `Showing all ${edges.length} links.`
+    : `Showing ${treeIds.size} of ${edges.length} links. Click a screen to see its links.`;
+  $("graph-hint-text").textContent = hintText(false);
+  $("toggle-links").textContent = "Show all links";
+  $("toggle-links").onclick = () => {
+    const showAll = $("toggle-links").textContent === "Show all links";
+    const hidden = state.cy?.edges(showAll ? ".extra" : ".was-extra");
+    if (showAll) hidden?.removeClass("extra").addClass("was-extra");
+    else hidden?.removeClass("was-extra").addClass("extra");
+    $("graph-hint-text").textContent = hintText(showAll);
+    $("toggle-links").textContent = showAll ? "Show main links" : "Show all links";
+  };
 
   const levels = {};
   for (const level of depth.values()) levels[level] = (levels[level] ?? 0) + 1;
