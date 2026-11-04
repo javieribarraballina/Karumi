@@ -4,7 +4,6 @@ const MAX_POLLS = 300;
 const STEP_MS = 600;
 const LARGE_MAP = 12; // screens; bigger maps zoom out, so labels need a larger font
 const DENSE_RATIO = 3; // links per screen; above this, site-wide menus tangle the graph
-const WIDE_LEVEL = 6; // screens at one depth; above this, a tree gets too wide to read
 const RING_SIZE = 14;
 
 const $ = (id) => document.getElementById(id);
@@ -218,9 +217,6 @@ function renderGraph(map, homeId) {
     $("toggle-links").textContent = showAll ? "Show main links" : "Show all links";
   };
 
-  const levels = {};
-  for (const level of depth.values()) levels[level] = (levels[level] ?? 0) + 1;
-  const wide = Math.max(...Object.values(levels)) > WIDE_LEVEL;
 
   state.cy?.destroy();
   const cy = cytoscape({
@@ -229,9 +225,8 @@ function renderGraph(map, homeId) {
     style: graphStyle(map.screens.length),
     minZoom: 0.15,
     maxZoom: 1.3,
-    layout: wide ? ringLayout([...depth.keys()]) : treeLayout(homeId),
+    layout: familyLayout(edges, map.screens.map((s) => s.id), depth, treeIds),
   });
-  if (!wide) fillStage(cy);
   cy.on("tap", "node", (event) => openDetail(event.target.id()));
   cy.on("tap", (event) => {
     if (event.target === cy) closeDetail();
@@ -252,6 +247,34 @@ function spanningTree(edges, rootId) {
     }
   }
   return { depth, treeIds };
+}
+
+// Family tree: start screen on top, each generation (clicks from start) one band lower,
+// every screen placed under the screen that leads to it. Wide generations wrap into rows.
+const TREE_COL = 215;
+const TREE_ROW = 175;
+const TREE_PER_ROW = 8;
+function familyLayout(edges, allIds, depth, treeIds) {
+  const parent = new Map();
+  for (const { data } of edges) if (treeIds.has(data.id)) parent.set(data.target, data.source);
+  const levels = [];
+  for (const [id, d] of depth) (levels[d] ??= []).push(id);
+  const orphans = allIds.filter((id) => !depth.has(id)); // not reachable from the start screen
+  if (orphans.length) levels.push(orphans);
+  const pos = {};
+  let y = 0;
+  levels.forEach((ids, d) => {
+    if (!ids) return;
+    // Keep siblings together and under their parent (left-to-right by the parent's x).
+    if (d > 0) ids.sort((a, b) => (pos[parent.get(a)]?.x ?? 0) - (pos[parent.get(b)]?.x ?? 0));
+    for (let i = 0; i < ids.length; i += TREE_PER_ROW) {
+      const row = ids.slice(i, i + TREE_PER_ROW);
+      row.forEach((id, j) => { pos[id] = { x: (j - (row.length - 1) / 2) * TREE_COL, y }; });
+      y += TREE_ROW;
+    }
+    y += TREE_ROW * 0.45; // gap between generations
+  });
+  return { name: "preset", positions: (node) => pos[node.id()] ?? { x: 0, y }, fit: true, padding: 40 };
 }
 
 function treeLayout(homeId) {
