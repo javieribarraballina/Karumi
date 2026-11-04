@@ -37,7 +37,9 @@ LINKS_JS = """
 () => Array.from(document.querySelectorAll('a[href]'))
   .filter(a => { const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
   .map(a => ({
-    text: (a.innerText || a.getAttribute('aria-label') || a.title || '').trim().replace(/\\s+/g, ' ').slice(0, 80),
+    text: (a.innerText || a.getAttribute('aria-label') || a.title
+           || a.querySelector('img[alt]')?.alt || a.querySelector('[aria-label]')?.getAttribute('aria-label')
+           || a.querySelector('svg title')?.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 80),
     href: a.href,
   }))
 """
@@ -115,6 +117,18 @@ def url_pattern(url: str) -> str:
     return "/".join(segments) + ("?" + "&".join(query_keys) if query_keys else "")
 
 
+def link_name(text: str, href: str) -> str:
+    """What a person would call this link: its text, else a name made from the URL, never the URL."""
+    if text and not text.lower().startswith(("http://", "https://", "//")):
+        return text
+    path = [seg for seg in urlparse(href).path.split("/") if seg and seg not in ("index.html", "index.htm")]
+    if not path or (len(path) == 1 and len(path[0]) <= 3):   # "/" or a locale like "/es"
+        return "Home"
+    words = re.sub(r"\.\w+$", "", path[-1])
+    words = re.sub(r"[-_+]+", " ", words).strip()
+    return words[:1].upper() + words[1:] if words else "Home"
+
+
 def _site(netloc: str) -> str:
     return netloc.lower().removeprefix("www.")
 
@@ -152,10 +166,12 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
     pattern_rep: dict[str, str] = {}           # pattern -> first captured page id with it
     pattern_count = {url_pattern(start): 1}
     links_seen: list[tuple[str, str, str]] = []  # (from page id, target url, action)
+    back_to: list[tuple[str, str]] = []          # (page id, page we came from)
     queue = deque([start])
     later: deque[str] = deque()                # site-menu and overflow links, visited when queue runs dry
     queued = {start}
     nav_hrefs: set[str] = set()
+    came_from: dict[str, str] = {}             # queued url -> id of the page whose link we followed
     deadline = time.monotonic() + max_seconds
 
     def report(msg: str) -> None:
@@ -222,13 +238,15 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
                     pages.append({"id": pid, "url": final, "title": title,
                                   "screenshot": shot, "text": text, "links": links})
                     url_to_id[target] = url_to_id[final] = pid
+                    if target in came_from:
+                        back_to.append((pid, came_from[target]))
                     pattern_rep.setdefault(url_pattern(final), pid)
                     report(final)
 
                     if not nav_hrefs:
                         nav_hrefs.update(l["href"] for l in links)  # the start page's links ~ site menu
                     for link in links:
-                        links_seen.append((pid, link["href"], f"click '{link['text'] or link['href']}'"))
+                        links_seen.append((pid, link["href"], f"click '{link_name(link['text'], link['href'])}'"))
                     # Content links (not in the site-wide menu) go first, so each page leads one level
                     # deeper; menu links and overflow wait in `later` so breadth isn't lost.
                     new = 0
@@ -241,6 +259,7 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
                             continue
                         pattern_count[pat] = pattern_count.get(pat, 0) + 1
                         queued.add(href)
+                        came_from.setdefault(href, pid)
                         menu = href in nav_hrefs and pid != "p1"
                         if not menu and new < MAX_CHILDREN:
                             queue.append(href)
@@ -260,6 +279,13 @@ def explore(url: str, out_dir: str, max_pages: int = 15, max_seconds: int = 90,
         if dst and dst != src and (src, dst) not in seen_edges:
             seen_edges.add((src, dst))
             transitions.append({"from": src, "to": dst, "action": action})
+
+    # The browser Back button always returns the way we came: add it where the page itself
+    # has no link back (dead ends, pages that only link off-site). Real links win.
+    for src, dst in back_to:
+        if src != dst and (src, dst) not in seen_edges:
+            seen_edges.add((src, dst))
+            transitions.append({"from": src, "to": dst, "action": "go back"})
 
     raw = {"app": start, "pages": pages, "transitions": transitions}
     with open(os.path.join(out_dir, "raw.json"), "w") as f:

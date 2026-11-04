@@ -210,3 +210,31 @@ def test_crawl_goes_deep_not_just_wide(tmp_path):
         server.shutdown()
     kinds = {p["url"].rsplit("/", 1)[-1].split("-")[0] for p in raw["pages"]}
     assert "detail" in kinds, "should reach 3 clicks deep (index > sec > more > detail) within 10 pages"
+
+
+def test_link_names_are_never_urls():
+    from backend.atlas.explorer import link_name
+    assert link_name("Shop", "https://a.com/shop") == "Shop"
+    assert link_name("", "https://apple.com/us/shop/goto/buy_mac") == "Buy mac"
+    assert link_name("https://apple.com/", "https://apple.com/") == "Home"
+    assert link_name("", "https://apple.com/es") == "Home"
+    assert link_name("", "https://a.com/docs/getting-started.html") == "Getting started"
+
+
+def test_dead_end_pages_get_a_go_back_step(tmp_path):
+    root = tmp_path / "dead"
+    root.mkdir()
+    (root / "index.html").write_text('<html><body><a href="leaf.html">Leaf</a> <a href="https://elsewhere.example/">Out</a></body></html>')
+    (root / "leaf.html").write_text('<html><body><h1>Leaf</h1><a href="https://elsewhere.example/">Only external</a></body></html>')
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
+    handler.log_message = lambda *a: None
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        raw = explore(f"http://127.0.0.1:{server.server_port}/", str(tmp_path / "run"), max_pages=5, max_seconds=30)
+    finally:
+        server.shutdown()
+    by = {p["url"].rsplit("/", 1)[-1]: p["id"] for p in raw["pages"]}
+    edges = {(t["from"], t["to"]): t["action"] for t in raw["transitions"]}
+    assert edges[(by[""], by["leaf.html"])] == "click 'Leaf'"
+    assert edges[(by["leaf.html"], by[""])] == "go back"
