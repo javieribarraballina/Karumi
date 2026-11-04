@@ -18,7 +18,7 @@ def raw():
     tr = [
         {"from": "p1", "to": "p2", "action": "click 'A'"},
         {"from": "p1", "to": "p3", "action": "click 'B'"},
-        {"from": "p1", "to": "p4", "action": "click 'B'"},  # same screen as p3 -> dup edge
+        {"from": "p1", "to": "p4", "action": "click 'B2'"},  # same screen pair as p3, other link text -> dup edge
         {"from": "p2", "to": "p3", "action": "click 'C'"},
         {"from": "p3", "to": "p4", "action": "click 'D'"},  # self-loop after merge
     ]
