@@ -1,0 +1,47 @@
+{
+  "app": "https://the-internet.herokuapp.com",
+  "screens": [
+    "Home",
+    "Add/Remove Elements",
+    "Basic Auth / Login",
+    "Checkboxes",
+    "Dropdown",
+    "Form Authentication",
+    "Secure Area (Logged In)",
+    "Hovers",
+    "Inputs",
+    "JavaScript Alerts"
+  ],
+  "url_to_screen": {
+    "^https?://the-internet\\.herokuapp\\.com/?$": "Home",
+    "^https?://the-internet\\.herokuapp\\.com/add_remove_elements/?": "Add/Remove Elements",
+    "^https?://the-internet\\.herokuapp\\.com/basic_auth": "Basic Auth / Login",
+    "^https?://the-internet\\.herokuapp\\.com/checkboxes": "Checkboxes",
+    "^https?://the-internet\\.herokuapp\\.com/dropdown": "Dropdown",
+    "^https?://the-internet\\.herokuapp\\.com/login": "Form Authentication",
+    "^https?://the-internet\\.herokuapp\\.com/secure": "Secure Area (Logged In)",
+    "^https?://the-internet\\.herokuapp\\.com/hovers": "Hovers",
+    "^https?://the-internet\\.herokuapp\\.com/inputs": "Inputs",
+    "^https?://the-internet\\.herokuapp\\.com/javascript_alerts": "JavaScript Alerts"
+  },
+  "paths": [
+    {
+      "from": "Home",
+      "to": "Form Authentication",
+      "expected_clicks": 1,
+      "actions": ["click 'Form Authentication'"]
+    },
+    {
+      "from": "Form Authentication",
+      "to": "Secure Area (Logged In)",
+      "expected_clicks": 1,
+      "actions": ["submit login form with credentials"]
+    },
+    {
+      "from": "Home",
+      "to": "Dropdown",
+      "expected_clicks": 1,
+      "actions": ["click 'Dropdown'"]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+# Dependencies and environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Cache and runs
+.cache/
+data/runs/
+.pytest_cache/
+
+# Agent internals
+.agents/
+
+# Secrets and local overrides
+.env
+*.local
