@@ -1,7 +1,7 @@
 # Atlas: Autonomous Web Exploration & Screen Mapping Agent
 # Maintained by Andrés (Eval, Deploy, Pitch)
 
-FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
+FROM mcr.microsoft.com/playwright/python:v1.48.0-noble
 
 ENV PYTHONUNBUFFERED=1 \
     PORT=8000
@@ -15,8 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install playwright browser binaries
 RUN playwright install chromium
 
-# Copy codebase
-COPY . /app
+# Clean layered copy of application subdirectories
+COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+COPY data/ ./data/
+COPY eval/ ./eval/
 
 # Expose default port
 EXPOSE 8000
