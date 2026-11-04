@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atlas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">Atlas</h1>
+    <form id="explore-form" class="explore">
+      <label class="sr-only" for="url-input">App URL</label>
+      <input id="url-input" type="text" inputmode="url" autocomplete="off" spellcheck="false"
+             placeholder="Paste the URL of an app Atlas has never seen">
+      <button id="explore-btn" class="primary" type="submit">Explore</button>
+    </form>
+    <label class="map-picker">
+      <span>Map</span>
+      <select id="map-select"></select>
+    </label>
+    <button id="demo-btn" type="button">Load demo</button>
+  </header>
+
+  <div id="banner" class="banner" role="alert" hidden>
+    <span id="banner-text"></span>
+    <button id="banner-close" type="button" aria-label="Dismiss message">×</button>
+  </div>
+
+  <main class="layout">
+    <section class="stage" aria-label="Map of the app">
+      <div id="graph" class="graph"></div>
+      <p id="empty" class="empty">Loading maps…</p>
+      <p id="progress" class="progress" role="status" hidden></p>
+      <ul class="legend" aria-hidden="true">
+        <li><i class="dot here"></i>You are here</li>
+        <li><i class="dot route"></i>Route</li>
+      </ul>
+
+      <aside id="detail" class="detail" aria-label="Screen details" hidden>
+        <button id="detail-close" class="close" type="button" aria-label="Close details">×</button>
+        <img id="detail-img" alt="">
+        <h2 id="detail-label"></h2>
+        <p id="detail-summary"></p>
+        <a id="detail-url" target="_blank" rel="noopener noreferrer"></a>
+        <div class="actions">
+          <button id="detail-start" type="button">Start here</button>
+          <button id="detail-route" class="primary" type="button">Route here</button>
+        </div>
+      </aside>
+    </section>
+
+    <aside class="tools">
+      <section class="card">
+        <h2>Where am I?</h2>
+        <label id="dropzone" class="dropzone">
+          <input id="file-input" class="sr-only" type="file" accept="image/*">
+          <span>Drop a screenshot or click to choose</span>
+        </label>
+        <div id="locate-result" class="result" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
+        <h2>How do I get to…</h2>
+        <p class="from">From <strong id="start-label">—</strong></p>
+        <form id="route-form" class="route">
+          <label class="sr-only" for="route-input">Destination screen</label>
+          <input id="route-input" type="text" autocomplete="off" placeholder="checkout, pricing…">
+          <button class="primary" type="submit">Go</button>
+        </form>
+        <div id="route-result" class="result" aria-live="polite"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
