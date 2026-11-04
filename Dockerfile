@@ -8,19 +8,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Copy dependency requirements if present, or install core stack
-COPY requirements*.txt /app/
-RUN pip install --no-cache-dir \
-    fastapi \
-    "uvicorn[standard]" \
-    playwright \
-    pillow \
-    imagehash \
-    pytest \
-    httpx \
-    python-multipart \
-    anthropic \
-    openai
+# Python dependencies from the project's requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Install playwright browser binaries
 RUN playwright install chromium
