@@ -60,13 +60,15 @@ def locate(map_id: str, file: UploadFile = File(...)):
 
 class ExploreBody(BaseModel):
     url: str
+    max_pages: int = 15  # live demo default; demo maps ask for 40 / 300
+    max_seconds: int = 90
 
 
-def _run(job_id: str, url: str):
+def _run(job_id: str, body: ExploreBody):
     job = JOBS[job_id]
     try:
         out = RUNS_DIR / job_id
-        raw = explorer.explore(url, str(out),
+        raw = explorer.explore(body.url, str(out), max_pages=body.max_pages, max_seconds=body.max_seconds,
                                on_progress=lambda n, total, _u: job.update(progress=f"{n}/{total} pages"))
         job["progress"] = "building map"
         (out / "map.json").write_text(json.dumps(graph.build_map(raw)))
@@ -80,7 +82,7 @@ def explore(body: ExploreBody):
     job_id = uuid.uuid4().hex[:8]
     JOBS[job_id] = {"status": "running", "progress": "exploring"}
     (RUNS_DIR / job_id).mkdir(parents=True, exist_ok=True)
-    threading.Thread(target=_run, args=(job_id, body.url), daemon=True).start()
+    threading.Thread(target=_run, args=(job_id, body), daemon=True).start()
     return {"job_id": job_id}
 
 

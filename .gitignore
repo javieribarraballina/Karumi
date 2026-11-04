@@ -1,20 +1,8 @@
-# Dependencies and environments
 .venv/
-venv/
-env/
-__pycache__/
-*.pyc
-
-# Cache and runs
 .cache/
-data/runs/
+.env
+__pycache__/
 .pytest_cache/
 .coverage
-
-# Agent internals
-.agents/
+data/runs/
 .claude/
-
-# Secrets and local overrides
-.env
-*.local

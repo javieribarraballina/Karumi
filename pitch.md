@@ -1,48 +1,31 @@
-# Atlas: 3-Minute Hackathon Defense Script
-**Karumi × Comillas Hackathon (Track 1) | Total Time: 3:00 (180s)**  
-**Speakers:** Javier, Juan, Blanca, Nacho, Andrés  
+# Atlas: 3-minute pitch
 
----
+Karumi × Comillas · Track 1 · Javier, Juan, Blanca, Nacho, Andrés
 
-### 1. What We Built (0:00 – 0:35)
-**Javier (Lead):**  
-An AI sales agent landing on an unseen SaaS app has zero prior training, no sitemap, and only seconds before a prospect leaves. We built **Atlas**: an autonomous exploration and screen-mapping engine. Given just a URL, Atlas crawls the application, clusters raw views into deduplicated screens, and maps every interaction as a directed graph. It answers the two core questions every sales agent needs: *Where am I?* and *How do I get to feature X?*
+| Time | Speaker | Part |
+|---|---|---|
+| 0:00–0:30 | Javier | What we built |
+| 0:30–1:15 | Juan + Nacho | Live demo |
+| 1:15–1:50 | Andrés | What it proves |
+| 1:50–2:30 | Blanca | Weakest part |
+| 2:30–3:00 | Javier | One more week |
 
----
+## Javier: what we built (0:00–0:30)
+"A demo agent lands on an app it has never seen. Before it can show anything, it needs to know where it is and how to get somewhere. We built Atlas. Give it a URL: it explores the app on its own, groups pages into screens and builds a map. Screens are nodes, clicks are edges. Then it answers two questions: where am I, and how do I get to X?"
 
-### 2. Live Demo (0:35 – 1:10)
-**Juan (Explorer):**  
-My crawler uses headless Playwright to discover buttons and links, capturing screenshots and transitions without needing predefined CSS selectors or training data.
+## Juan + Nacho: live demo (0:30–1:15)
+**Juan:** "My explorer opens the site in a headless browser and follows same-site links. It visits at most two pages per URL pattern, so a shop with a thousand books costs two visits, not a thousand."
 
-**Nacho (Frontend):**  
-On our web interface, the app is rendered live as an interactive Cytoscape graph. When an agent captures a screen, *Where am I?* identifies the exact node in milliseconds. When asked *Take me to login*, Atlas computes the deterministic shortest path across the graph—click by click, with zero hallucination.
+**Nacho** (live, using the precomputed map and a screenshot tested beforehand): "This is the-internet.herokuapp.com, mapped in about fifteen seconds. I upload a screenshot it hasn't seen, and it highlights the screen. Now I ask for Checkboxes: here are the clicks, step by step."
 
----
+## Andrés: what it proves (1:15–1:50)
+"We measured on two public sites, with fresh screenshots at a different window size, and without an API key:
+- Mapping: 12 pages became 6 screens on books.toscrape, and 15 became 14 on the-internet, in 15 to 17 seconds.
+- Paths found from the start screen: 5 of 5 and 13 of 13.
+- Where am I: 50% top-1 and 71% top-3 on the-internet; 17% and 50% on books."
 
-### 3. What It Proves (1:10 – 1:55)
-**Andrés (Eval & Pitch):**  
-Judges score on evidence, not feelings. Here are our measured benchmark numbers from `eval/results.md`:
-- **Speed:** Atlas crawls and maps an unseen application in **15 to 17 seconds**.
-- **Paths Found:** Graph search resolved valid paths to target destinations on **100% of tested routes**—13 out of 13 on the-internet, and 5 out of 5 on books.
-- **Screen Recognition:** On fresh screenshots under a different viewport (1024×768) and scrolled 300 pixels, image perceptual hashing alone achieved **50% Top-1 and 71% Top-3** recognition on the-internet.
-- **Deterministic Navigation:** The agent navigates strictly along verified edges, guaranteeing zero invented paths.
+## Blanca: weakest part (1:50–2:30)
+"Our weakest part is recognising pages that share a layout. Every book page looks the same, so image fingerprints alone get only 17% right. Atlas needs the vision model to tell them apart, and we measured without it. Merging was the other trap: plain white pages all look alike, so two pages now merge only if they look alike and their text matches. Atlas also doesn't log in, and single-page apps that never change URL aren't explored."
 
----
-
-### 4. Weakest Part (1:55 – 2:30)
-**Blanca (Screen Identifier):**  
-Judges reward knowing your limits, and we are completely honest about ours:
-1. **Template Collisions:** On pages that share a visual layout—like the books site where all product covers look identical—image fingerprints alone get only **17% Top-1** accuracy. This proves visual hashing alone fails on template-heavy sites; the vision LLM fallback is strictly required to disambiguate.
-2. **Dynamic SPAs:** State changes without URL updates or DOM transitions are invisible to standard crawlers.
-3. **Login Walls:** Authenticated sections cannot be explored without session injection.
-
----
-
-### 5. One More Week & Close (2:30 – 3:00)
-**Javier & Team:**  
-With one more week, we would ship:
-1. A fine-tuned lightweight vision model replacing the LLM fallback for sub-50ms screen classification.
-2. Session cookie injection for enterprise login flows.
-3. Dynamic drift detection to update modified edges without re-crawling.
-
-Atlas proves an AI agent doesn't need prior training—it just needs a map. Thank you!
+## Javier: one more week (2:30–3:00)
+"With one more week: measure with the vision model on, explore behind a login with a test account, click buttons as well as links for single-page apps, and confirm each path by replaying its clicks. That is the map Karumi's agent needs before its first demo."
