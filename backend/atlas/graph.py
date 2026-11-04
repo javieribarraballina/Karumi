@@ -11,7 +11,7 @@ def build_map(raw: dict) -> dict:
         sid, first = f"s{i}", pages[ids[0]]
         info = identify.label_screen(first["screenshot"], first.get("text", ""))
         screens.append({"id": sid, "label": info["label"], "summary": info["summary"], "url": first["url"],
-                        "screenshot": first["screenshot"], "phash": first.get("phash", ""), "page_ids": ids})
+                        "screenshot": first["screenshot"], "phash": identify.screen_phash(first["screenshot"]), "page_ids": ids})
         page_to_screen.update({pid: sid for pid in ids})
     edges, seen = [], set()
     for t in raw["transitions"]:

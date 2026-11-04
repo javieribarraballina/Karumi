@@ -17,9 +17,10 @@ def _client():
 def _call(prompt: str, image_path: str | None, model: str) -> str:
     content = []
     if image_path:
-        data = base64.b64encode(Path(image_path).read_bytes()).decode()
-        # shortcut: always declares PNG, upgrade if JPEG uploads misbehave
-        content.append({"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": data}})
+        raw = Path(image_path).read_bytes()
+        mime = "image/jpeg" if raw[:3] == b"\xff\xd8\xff" else "image/png"
+        content.append({"type": "image", "source": {"type": "base64", "media_type": mime,
+                                                    "data": base64.b64encode(raw).decode()}})
     content.append({"type": "text", "text": prompt})
     msg = _client().messages.create(
         model=MODELS.get(model, model), max_tokens=1024, messages=[{"role": "user", "content": content}]
