@@ -28,7 +28,9 @@ def raw():
 def test_build_map_dedupes_and_drops_self_loops(monkeypatch):
     monkeypatch.setattr(identify, "cluster_pages", lambda pages: [["p1"], ["p2"], ["p3", "p4"]])
     monkeypatch.setattr(identify, "label_screen", lambda shot, text: {"label": f"L-{text}", "summary": "s"})
+    monkeypatch.setattr(identify, "screen_phash", lambda shot: f"h-{shot}", raising=False)
     m = graph.build_map(raw())
+    assert m["screens"][2]["phash"] == "h-s3.png"  # explorer pages carry no phash
     assert [s["id"] for s in m["screens"]] == ["s1", "s2", "s3"]
     assert m["screens"][2]["page_ids"] == ["p3", "p4"]
     assert m["screens"][2]["label"] == "L-t3"  # labelled from first page of cluster

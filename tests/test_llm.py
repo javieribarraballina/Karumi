@@ -69,3 +69,21 @@ def test_call_sends_image_block(monkeypatch, tmp_path):
     assert llm._call("p", str(img), "haiku") == "answer"
     assert sent["model"] == "claude-haiku-5-5"
     assert sent["messages"][0]["content"][0]["type"] == "image"
+
+
+@pytest.mark.parametrize("head,mime", [(b"\xff\xd8\xff\xe0", "image/jpeg"), (b"\x89PNG", "image/png")])
+def test_media_type_from_magic_bytes(monkeypatch, tmp_path, head, mime):
+    img = tmp_path / "upload.bin"  # extension must not matter
+    img.write_bytes(head + b"rest")
+    sent = {}
+
+    class Client:
+        class messages:
+            @staticmethod
+            def create(**kw):
+                sent.update(kw)
+                return type("M", (), {"content": [type("B", (), {"text": "x"})()]})()
+
+    monkeypatch.setattr(llm, "_client", lambda: Client)
+    llm._call("p", str(img), "haiku")
+    assert sent["messages"][0]["content"][0]["source"]["media_type"] == mime
