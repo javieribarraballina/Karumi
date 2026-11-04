@@ -20,7 +20,9 @@ from urllib.parse import urlsplit
 
 # Tunable values in one place (Andrés can tune these against the ground truth).
 THRESHOLDS = {
-    "phash_same_screen": 10,   # max Hamming distance (of 64 bits) to treat two pages as one screen
+    "phash_same_screen": 10,   # max Hamming distance (of 64 bits) for a visual merge when texts also agree
+    "text_overlap_min": 0.5,   # min word overlap (Jaccard) required before a visual-only merge
+    "phash_no_text": 5,        # stricter cutoff for a visual-only merge when a page has no text
     "phash_score_span": 32,    # distance at which the phash score drops to 0 (32 ≈ unrelated images)
     "locate_confident": 0.80,  # phash score above which we trust phash without asking the LLM
     "locate_margin": 0.10,     # ...and the gap needed between the 1st and 2nd candidate
@@ -120,12 +122,31 @@ def url_pattern(url: str) -> str:
     return (parts.netloc.lower() + "/" + "/".join(out)).rstrip("/") or "/"
 
 
+# ------------------------------------------------------------- text overlap
+_WORD = re.compile(r"[^\W_]+", re.UNICODE)
+
+
+def _words(text: str) -> set[str]:
+    return {w.lower() for w in _WORD.findall(text or "")}
+
+
+def _overlap(a: set[str], b: set[str]) -> float:
+    """Jaccard word overlap: |a ∩ b| / |a ∪ b|."""
+    if not a or not b:
+        return 0.0
+    return len(a & b) / len(a | b)
+
+
 # --------------------------------------------------------------- cluster_pages
 def cluster_pages(pages: list[dict]) -> list[list[str]]:
     """Group page ids that are the same screen.
 
-    Two pages are the same screen if their URL patterns match OR their
-    screenshots' perceptual hashes are within THRESHOLDS["phash_same_screen"].
+    Two pages are the same screen if
+      - their URL patterns match, OR
+      - their screenshots are close (phash ≤ THRESHOLDS["phash_same_screen"]) AND
+        their visible text overlaps (word Jaccard ≥ THRESHOLDS["text_overlap_min"]), OR
+      - one of them has no text and the screenshots are near-identical
+        (phash ≤ THRESHOLDS["phash_no_text"]).
     Union-find keeps the grouping transitive. Output order follows the crawl.
     """
     ids = [p["id"] for p in pages]
@@ -157,10 +178,19 @@ def cluster_pages(pages: list[dict]) -> list[list[str]]:
         else:
             by_pattern[pat] = pid
 
+    # Visual-only merges: similar screenshots are not enough on their own (plain
+    # white pages hash alike), so the visible text must overlap too. Pages with
+    # no text fall back to a much stricter image cutoff.
+    words = {p["id"]: _words(p.get("text", "")) for p in pages}
     for i, a in enumerate(ids):
         for b in ids[i + 1 :]:
             d = _hamming(hashes[a], hashes[b])
-            if d is not None and d <= THRESHOLDS["phash_same_screen"]:
+            if d is None:
+                continue
+            if words[a] and words[b]:
+                if d <= THRESHOLDS["phash_same_screen"] and _overlap(words[a], words[b]) >= THRESHOLDS["text_overlap_min"]:
+                    union(a, b)
+            elif d <= THRESHOLDS["phash_no_text"]:
                 union(a, b)
 
     groups: dict[str, list[str]] = {}

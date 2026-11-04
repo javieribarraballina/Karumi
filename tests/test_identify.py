@@ -118,6 +118,53 @@ def test_cluster_merges_identical_screens_with_different_urls(tmp_path):
     assert identify.cluster_pages(pages) == [["p1", "p2"], ["p3"]]
 
 
+def white_page(path, n):
+    """Near-identical white pages (same header, a heading of slightly different width),
+    like the plain pages of the-internet.herokuapp.com."""
+    im = Image.new("RGB", (400, 300), (255, 255, 255))
+    d = ImageDraw.Draw(im)
+    d.rectangle([0, 0, 400, 24], fill=(40, 40, 40))
+    d.rectangle([20, 50, 180 + 6 * n, 62], fill=(60, 60, 60))
+    im.save(path)
+    return str(path)
+
+
+def test_cluster_does_not_merge_white_pages_with_different_text(tmp_path):
+    texts = [
+        "Checkboxes checkbox 1 checkbox 2",
+        "Dropdown List Please select an option",
+        "Login Page This is where you can log into the secure area",
+        "Key Presses Key presses are often used to interact with a website",
+        "Hovers Hover over the image for additional information",
+    ]
+    pages = [
+        {"id": f"p{i}", "url": f"https://the-internet.test/{t.split()[0].lower()}", "text": t,
+         "screenshot": white_page(tmp_path / f"w{i}.png", i)}
+        for i, t in enumerate(texts, start=1)
+    ]
+    # the screenshots really are visually close, so only the text check keeps them apart
+    hs = [identify.screen_phash(p["screenshot"]) for p in pages]
+    assert max(identify._hamming(hs[0], h) for h in hs) <= identify.THRESHOLDS["phash_same_screen"]
+    assert identify.cluster_pages(pages) == [[p["id"]] for p in pages]
+
+
+def test_cluster_merges_similar_pages_when_text_overlaps(tmp_path):
+    shot = make_screen(tmp_path / "a.png", 5)
+    pages = [
+        {"id": "p1", "url": "https://x.com/", "text": "Welcome to Acme dashboard revenue tasks today",
+         "screenshot": shot},
+        {"id": "p2", "url": "https://x.com/home", "text": "Welcome to Acme dashboard revenue tasks this week",
+         "screenshot": as_user_screenshot(shot, tmp_path / "b.jpg", 1.0)},
+    ]
+    assert identify.cluster_pages(pages) == [["p1", "p2"]]
+
+
+def test_word_overlap():
+    assert identify._overlap(identify._words("Log in now"), identify._words("log IN now!")) == 1.0
+    assert identify._overlap(identify._words("a b"), identify._words("c d")) == 0.0
+    assert identify._overlap(set(), {"a"}) == 0.0
+
+
 def test_cluster_is_transitive_and_survives_missing_screenshots():
     pages = [
         {"id": "p1", "url": "https://x.com/item/1"},
